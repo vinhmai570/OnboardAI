@@ -80,4 +80,13 @@ if Course.count == 0
   ])
 
   puts "Created sample course: #{course.title} with #{course.steps.count} steps"
+
+  # Create course assignments
+  UserCourseAssignment.find_or_create_by!(user: user1, course: course) do |assignment|
+    assignment.assigned_by = admin
+    assignment.assigned_at = Time.current
+  end
+
+  puts "Assigned course to user1@example.com"
+  puts "user2@example.com has no course assignments (for testing restricted access)"
 end

@@ -344,7 +344,8 @@ class GenerateCourseJob < ApplicationJob
     Turbo::StreamsChannel.broadcast_replace_to(
       "course_generator",
       target: "generate-button-container",
-      partial: "admin/course_generator/generate_detailed_button"
+      partial: "admin/course_generator/generate_detailed_button",
+      locals: { conversation: @conversation }
     )
   end
 

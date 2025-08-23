@@ -3,7 +3,14 @@ class CoursesController < ApplicationController
   before_action :set_course, only: [:show, :enroll, :complete_step]
 
   def index
-    @courses = Course.includes(:course_modules, :admin).published.order(created_at: :desc)
+    # Show different courses based on user role
+    if current_user.admin?
+      # Admins can see all published courses
+      @courses = Course.includes(:course_modules, :admin).published.order(created_at: :desc)
+    else
+      # Regular users only see courses assigned to them
+      @courses = current_user.assigned_courses.includes(:course_modules, :admin).published.order(created_at: :desc)
+    end
 
     # If user is logged in, get their progress data for each course
     if current_user
@@ -33,6 +40,12 @@ class CoursesController < ApplicationController
   end
 
   def show
+    # Check if user has access to this course
+    unless can_access_course?(@course)
+      redirect_to courses_path, alert: "You don't have access to this course."
+      return
+    end
+
     # Get user progress data if logged in
     @progress_data = current_user&.progress_for_course(@course)
 
@@ -41,6 +54,12 @@ class CoursesController < ApplicationController
   end
 
   def enroll
+    # Check if user has access to this course
+    unless can_access_course?(@course)
+      redirect_to courses_path, alert: "You don't have access to this course."
+      return
+    end
+
     # Create initial progress records for all course steps
     @course.course_modules.includes(:course_steps).each do |course_module|
       course_module.course_steps.each do |step|
@@ -54,6 +73,12 @@ class CoursesController < ApplicationController
   end
 
   def complete_step
+    # Check if user has access to this course
+    unless can_access_course?(@course)
+      render json: { success: false, message: "You don't have access to this course." }
+      return
+    end
+
     @course_step = CourseStep.find(params[:step_id])
     @progress = @course_step.user_progresses.find_or_create_by(user: current_user)
 
@@ -76,5 +101,10 @@ class CoursesController < ApplicationController
 
   def current_user
     @current_user ||= User.find(session[:user_id]) if session[:user_id]
+  end
+
+  def can_access_course?(course)
+    return true if current_user.admin?
+    current_user.assigned_courses.include?(course)
   end
 end

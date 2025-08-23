@@ -1,24 +1,22 @@
 <div class="mt-4 pt-3 border-t border-gray-200">
-  <div id="structure-button-container">
-    <% conversation_id = defined?(conversation) && conversation ? conversation.id : nil %>
+  <% conversation_id = defined?(conversation) && conversation ? conversation.id : nil %>
 
-    <form action="<%= generate_detailed_admin_course_generator_index_path %>" method="post" style="display: inline;">
-      <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
-      <% if conversation_id %>
-        <%= hidden_field_tag :conversation_id, conversation_id %>
-      <% end %>
+  <form action="<%= generate_detailed_admin_course_generator_index_path %>" method="post" style="display: inline;">
+    <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
+    <% if conversation_id %>
+      <%= hidden_field_tag :conversation_id, conversation_id %>
+    <% end %>
 
-      <input type="submit"
-             value="Generate Course Structure"
-             class="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
-             id="generate-structure-button"
-             onclick="this.disabled=true; this.value='⏳ Generating structure...'; this.form.submit();" />
-    </form>
-  </div>
+    <input type="submit"
+           value="Generate Course Structure"
+           class="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+           id="generate-structure-button"
+           onclick="this.disabled=true; this.value='⏳ Generating structure...'; refreshCSRFToken(this.form); this.form.submit();" />
+  </form>
+
   <% if defined?(conversation) && conversation %>
     <div class="text-xs text-gray-500 mt-2">
       Using conversation #<%= conversation.id %> context
     </div>
   <% end %>
-
 </div>

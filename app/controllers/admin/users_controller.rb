@@ -1,9 +1,14 @@
 class Admin::UsersController < ApplicationController
   before_action :require_admin
-  before_action :set_user, only: [ :edit, :update, :destroy ]
+  before_action :set_user, only: [ :show, :edit, :update, :destroy, :assign_course, :unassign_course ]
 
   def index
-    @users = User.all.order(created_at: :desc)
+    @users = User.all.includes(:assigned_courses).order(created_at: :desc)
+  end
+
+  def show
+    @assigned_courses = @user.assigned_courses.includes(:admin)
+    @available_courses = Course.published.where.not(id: @assigned_courses.pluck(:id))
   end
 
   def new
@@ -24,16 +29,55 @@ class Admin::UsersController < ApplicationController
   end
 
   def update
-    if @user.update(user_params)
-      redirect_to admin_users_path, notice: "User was successfully updated."
+    # Handle password update - only update if password is provided
+    if user_params[:password].present?
+      if @user.update(user_params)
+        redirect_to admin_users_path, notice: "User was successfully updated."
+      else
+        render :edit, status: :unprocessable_entity
+      end
     else
-      render :edit, status: :unprocessable_entity
+      # Update without password
+      if @user.update(user_params.except(:password))
+        redirect_to admin_users_path, notice: "User was successfully updated."
+      else
+        render :edit, status: :unprocessable_entity
+      end
     end
   end
 
   def destroy
     @user.destroy
     redirect_to admin_users_path, notice: "User was successfully deleted."
+  end
+
+  def assign_course
+    course = Course.find(params[:course_id])
+
+    unless @user.assigned_courses.include?(course)
+      @user.user_course_assignments.create!(
+        course: course,
+        assigned_by: current_user,
+        assigned_at: Time.current
+      )
+      redirect_to admin_user_path(@user), notice: "Course '#{course.title}' successfully assigned to #{@user.email}."
+    else
+      redirect_to admin_user_path(@user), alert: "Course is already assigned to this user."
+    end
+  rescue ActiveRecord::RecordInvalid => e
+    redirect_to admin_user_path(@user), alert: "Failed to assign course: #{e.message}"
+  end
+
+  def unassign_course
+    course = Course.find(params[:course_id])
+    assignment = @user.user_course_assignments.find_by(course: course)
+
+    if assignment
+      assignment.destroy
+      redirect_to admin_user_path(@user), notice: "Course '#{course.title}' successfully unassigned from #{@user.email}."
+    else
+      redirect_to admin_user_path(@user), alert: "Course is not assigned to this user."
+    end
   end
 
   private
@@ -43,6 +87,6 @@ class Admin::UsersController < ApplicationController
   end
 
   def user_params
-    params.require(:user).permit(:email, :role, :password, :password_confirmation)
+    params.require(:user).permit(:email, :role, :password)
   end
 end

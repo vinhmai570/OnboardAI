@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_08_23_150929) do
+ActiveRecord::Schema[8.0].define(version: 2025_08_23_152012) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "vector"
@@ -208,6 +208,19 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_23_150929) do
     t.index ["course_id"], name: "index_steps_on_course_id"
   end
 
+  create_table "user_course_assignments", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.bigint "course_id", null: false
+    t.datetime "assigned_at", default: -> { "CURRENT_TIMESTAMP" }
+    t.bigint "assigned_by_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["assigned_by_id"], name: "index_user_course_assignments_on_assigned_by_id"
+    t.index ["course_id"], name: "index_user_course_assignments_on_course_id"
+    t.index ["user_id", "course_id"], name: "index_user_course_assignments_on_user_id_and_course_id", unique: true
+    t.index ["user_id"], name: "index_user_course_assignments_on_user_id"
+  end
+
   create_table "user_progresses", force: :cascade do |t|
     t.bigint "user_id", null: false
     t.bigint "course_step_id", null: false
@@ -250,6 +263,9 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_23_150929) do
   add_foreign_key "quiz_responses", "quiz_questions"
   add_foreign_key "quizzes", "course_steps"
   add_foreign_key "steps", "courses"
+  add_foreign_key "user_course_assignments", "courses"
+  add_foreign_key "user_course_assignments", "users"
+  add_foreign_key "user_course_assignments", "users", column: "assigned_by_id"
   add_foreign_key "user_progresses", "course_steps"
   add_foreign_key "user_progresses", "users"
 end

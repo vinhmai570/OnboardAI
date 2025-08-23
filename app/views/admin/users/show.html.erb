@@ -1,0 +1,313 @@
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <!-- Header -->
+  <div class="sm:flex sm:items-center">
+    <div class="sm:flex-auto">
+      <nav class="flex" aria-label="Breadcrumb">
+        <ol class="flex items-center space-x-4">
+          <li>
+            <%= link_to admin_users_path, class: 'text-gray-400 hover:text-gray-500' do %>
+              <svg class="flex-shrink-0 h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
+              </svg>
+              <span class="ml-1">Back to Users</span>
+            <% end %>
+          </li>
+        </ol>
+      </nav>
+      <h1 class="mt-2 text-2xl font-semibold text-gray-900">User Details</h1>
+      <p class="mt-2 text-sm text-gray-700">Manage user information and course assignments</p>
+    </div>
+    <div class="mt-4 sm:mt-0 sm:ml-16 sm:flex-none space-x-3">
+      <% if @available_courses.any? %>
+        <button type="button"
+                class="inline-flex items-center justify-center rounded-md border border-transparent bg-green-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 sm:w-auto"
+                onclick="openAssignModal()">
+          <svg class="-ml-1 mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+          </svg>
+          Assign Course
+        </button>
+      <% end %>
+      <%= link_to 'Edit User', edit_admin_user_path(@user), class: 'inline-flex items-center justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:w-auto' %>
+    </div>
+  </div>
+
+  <div class="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
+    <!-- User Information Card -->
+    <div class="bg-white shadow rounded-lg">
+      <div class="px-4 py-5 sm:p-6">
+        <h3 class="text-lg leading-6 font-medium text-gray-900">User Information</h3>
+        <div class="mt-5">
+          <div class="flex items-center">
+            <div class="flex-shrink-0 h-16 w-16">
+              <div class="h-16 w-16 rounded-full bg-indigo-100 flex items-center justify-center">
+                <span class="text-indigo-600 font-bold text-xl"><%= @user.email.first.upcase %></span>
+              </div>
+            </div>
+            <div class="ml-4">
+              <div class="text-lg font-medium text-gray-900"><%= @user.email %></div>
+              <div class="text-sm text-gray-500">User ID: <%= @user.id %></div>
+              <span class="mt-1 inline-flex px-2 py-1 text-xs font-semibold rounded-full <%= @user.admin? ? 'bg-purple-100 text-purple-800' : 'bg-green-100 text-green-800' %>">
+                <%= @user.role.capitalize %>
+              </span>
+            </div>
+          </div>
+          <div class="mt-4 grid grid-cols-2 gap-4">
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Created</dt>
+              <dd class="mt-1 text-sm text-gray-900"><%= @user.created_at.strftime('%B %d, %Y at %I:%M %p') %></dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Last Updated</dt>
+              <dd class="mt-1 text-sm text-gray-900"><%= @user.updated_at.strftime('%B %d, %Y at %I:%M %p') %></dd>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Course Assignment Statistics -->
+    <div class="bg-white shadow rounded-lg">
+      <div class="px-4 py-5 sm:p-6">
+        <h3 class="text-lg leading-6 font-medium text-gray-900">Learning Statistics</h3>
+        <div class="mt-5">
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Assigned Courses</dt>
+              <dd class="mt-1 text-3xl font-semibold text-indigo-600"><%= @assigned_courses.count %></dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-gray-500">Available Courses</dt>
+              <dd class="mt-1 text-3xl font-semibold text-gray-400"><%= @available_courses.count %></dd>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
+    <!-- Assigned Courses -->
+    <div class="bg-white shadow rounded-lg">
+      <div class="px-4 py-5 sm:p-6">
+        <h3 class="text-lg leading-6 font-medium text-gray-900">Assigned Courses</h3>
+        <p class="mt-1 text-sm text-gray-500">Courses currently assigned to this user</p>
+
+        <% if @assigned_courses.any? %>
+          <div class="mt-6 space-y-4">
+            <% @assigned_courses.each do |course| %>
+              <div class="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                <div class="flex-1">
+                  <h4 class="text-sm font-medium text-gray-900"><%= course.title %></h4>
+                  <p class="text-sm text-gray-500">Created by <%= course.admin.email %></p>
+                  <p class="text-xs text-gray-400 mt-1">
+                    Assigned: <%= course.user_course_assignments.find_by(user: @user)&.assigned_at&.strftime('%b %d, %Y') %>
+                  </p>
+                </div>
+                <div class="ml-4 flex-shrink-0">
+                  <%= form_with url: unassign_course_admin_user_path(@user, course_id: course.id),
+                                method: :delete,
+                                local: true,
+                                class: "inline-block",
+                                onsubmit: "return confirm('Are you sure you want to unassign \\'#{course.title}\\' from #{@user.email}? This action cannot be undone.')" do |form| %>
+                    <%= form.button type: :submit,
+                                     class: 'inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 cursor-pointer' do %>
+                      <svg class="-ml-0.5 mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                      </svg>
+                      Remove
+                    <% end %>
+                  <% end %>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        <% else %>
+          <div class="text-center py-6">
+            <div class="text-gray-400">
+              <svg class="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+              </svg>
+            </div>
+            <h3 class="mt-2 text-sm font-medium text-gray-900">No assigned courses</h3>
+            <p class="mt-1 text-sm text-gray-500">This user has not been assigned to any courses yet.</p>
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+    <!-- Course Assignment Summary -->
+    <div class="bg-white shadow rounded-lg">
+      <div class="px-4 py-5 sm:p-6">
+        <h3 class="text-lg leading-6 font-medium text-gray-900">Course Assignment Summary</h3>
+        <p class="mt-1 text-sm text-gray-500">Overview of course availability and assignments</p>
+
+        <div class="mt-6">
+          <dl class="grid grid-cols-1 gap-5 sm:grid-cols-2">
+            <div class="px-4 py-5 bg-gray-50 shadow rounded-lg overflow-hidden sm:p-6">
+              <dt class="text-sm font-medium text-gray-500 truncate">Available Courses</dt>
+              <dd class="mt-1 text-3xl font-semibold text-gray-900"><%= @available_courses.count %></dd>
+            </div>
+            <div class="px-4 py-5 bg-blue-50 shadow rounded-lg overflow-hidden sm:p-6">
+              <dt class="text-sm font-medium text-gray-500 truncate">Assigned Courses</dt>
+              <dd class="mt-1 text-3xl font-semibold text-blue-900"><%= @assigned_courses.count %></dd>
+            </div>
+          </dl>
+
+          <% if @available_courses.any? %>
+            <div class="mt-6 text-center">
+              <p class="text-sm text-gray-500 mb-4"><%= @available_courses.count %> courses available for assignment</p>
+              <button type="button"
+                      class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                      onclick="openAssignModal()">
+                <svg class="-ml-1 mr-3 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                </svg>
+                Assign Course
+              </button>
+            </div>
+          <% else %>
+            <div class="mt-6 text-center">
+              <div class="text-gray-400 mb-2">
+                <svg class="mx-auto h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>
+                </svg>
+              </div>
+              <p class="text-sm font-medium text-gray-900">All courses assigned</p>
+              <p class="text-sm text-gray-500">This user has been assigned to all available courses.</p>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Course Assignment Modal -->
+<div id="assignModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 hidden">
+  <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-2/3 lg:w-1/2 shadow-lg rounded-md bg-white">
+    <div class="mt-3">
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between pb-4 border-b border-gray-200">
+        <h3 class="text-lg font-medium text-gray-900">Assign Course to <%= @user.email %></h3>
+        <button type="button" class="text-gray-400 hover:text-gray-600" onclick="closeAssignModal()">
+          <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="mt-4 max-h-96 overflow-y-auto">
+        <% if @available_courses.any? %>
+          <div class="space-y-4">
+            <% @available_courses.each do |course| %>
+              <div class="border border-gray-200 rounded-lg p-4 hover:border-indigo-300 hover:shadow-md transition-all duration-200 cursor-pointer"
+                   onclick="selectCourse(<%= course.id %>)">
+                <div class="flex items-start justify-between">
+                  <div class="flex-1">
+                    <h4 class="text-base font-medium text-gray-900"><%= course.title %></h4>
+                    <p class="text-sm text-gray-600 mt-1">Created by <%= course.admin.email %></p>
+                    <div class="flex items-center mt-2 space-x-4">
+                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        <%= course.total_modules %> modules
+                      </span>
+                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        <%= course.total_steps %> steps
+                      </span>
+                    </div>
+                    <% if course.description.present? %>
+                      <p class="text-sm text-gray-500 mt-2 line-clamp-2"><%= truncate(course.description, length: 100) %></p>
+                    <% end %>
+                  </div>
+                  <div class="ml-4 flex-shrink-0">
+                    <%= form_with url: assign_course_admin_user_path(@user),
+                                  method: :post,
+                                  local: true,
+                                  id: "assign-form-#{course.id}",
+                                  class: "hidden" do |form| %>
+                      <%= form.hidden_field :course_id, value: course.id %>
+                    <% end %>
+                    <button type="button"
+                            onclick="assignCourse(<%= course.id %>)"
+                            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200">
+                      <svg class="-ml-1 mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                      </svg>
+                      Assign
+                    </button>
+                  </div>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        <% else %>
+          <div class="text-center py-8">
+            <div class="text-gray-400 mb-4">
+              <svg class="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4"></path>
+              </svg>
+            </div>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">All courses assigned</h3>
+            <p class="text-sm text-gray-500">This user has been assigned to all available published courses.</p>
+          </div>
+        <% end %>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="mt-6 pt-4 border-t border-gray-200">
+        <div class="flex justify-end">
+          <button type="button"
+                  onclick="closeAssignModal()"
+                  class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- JavaScript for Modal Control -->
+<script>
+  function openAssignModal() {
+    document.getElementById('assignModal').classList.remove('hidden');
+    document.body.classList.add('overflow-hidden');
+  }
+
+  function closeAssignModal() {
+    document.getElementById('assignModal').classList.add('hidden');
+    document.body.classList.remove('overflow-hidden');
+  }
+
+  function selectCourse(courseId) {
+    // Visual feedback for course selection (optional)
+    const allCourses = document.querySelectorAll('[onclick*="selectCourse"]');
+    allCourses.forEach(course => {
+      course.classList.remove('ring-2', 'ring-indigo-500', 'border-indigo-500');
+    });
+
+    event.currentTarget.classList.add('ring-2', 'ring-indigo-500', 'border-indigo-500');
+  }
+
+  function assignCourse(courseId) {
+    const courseName = document.querySelector(`[onclick="selectCourse(${courseId})"] h4`).textContent;
+    if (confirm(`Are you sure you want to assign '${courseName}' to <%= @user.email %>?`)) {
+      document.getElementById('assign-form-' + courseId).submit();
+    }
+  }
+
+  // Close modal when clicking outside
+  document.getElementById('assignModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+      closeAssignModal();
+    }
+  });
+
+  // Close modal with Escape key
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && !document.getElementById('assignModal').classList.contains('hidden')) {
+      closeAssignModal();
+    }
+  });
+</script>

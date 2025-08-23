@@ -9,6 +9,11 @@ class User < ApplicationRecord
   has_many :quiz_attempts, dependent: :destroy
   has_many :user_progresses, dependent: :destroy
 
+  # Course assignment relationships
+  has_many :user_course_assignments, dependent: :destroy
+  has_many :assigned_courses, through: :user_course_assignments, source: :course
+  has_many :course_assignments_made, class_name: "UserCourseAssignment", foreign_key: :assigned_by_id, dependent: :destroy
+
   # Validations
   validates :email, presence: true, uniqueness: true
   validates :role, presence: true, inclusion: { in: %w[admin user] }

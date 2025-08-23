@@ -186,4 +186,15 @@ document.addEventListener('DOMContentLoaded', function() {
   // Focus on textarea when page loads
   promptTextarea.focus();
 });
+
+// CSRF token refresh function for dynamically rendered forms
+window.refreshCSRFToken = function(form) {
+  const tokenInput = form.querySelector('input[name="authenticity_token"]');
+  if (tokenInput) {
+    const csrfToken = document.querySelector('meta[name="csrf-token"]');
+    if (csrfToken) {
+      tokenInput.value = csrfToken.content;
+    }
+  }
+};
 </script>

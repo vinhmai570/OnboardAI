@@ -71,7 +71,12 @@ Rails.application.routes.draw do
     get "dashboard", to: "dashboard#index"
     get "dashboard/index"
 
-    resources :users, except: [ :show ]
+    resources :users do
+      member do
+        post :assign_course
+        delete :unassign_course
+      end
+    end
     resources :documents do
       member do
         post :process_document

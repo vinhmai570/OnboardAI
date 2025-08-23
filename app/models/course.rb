@@ -9,6 +9,10 @@ class Course < ApplicationRecord
   has_many :course_modules, -> { order(:order_position) }, dependent: :destroy
   has_many :course_steps, through: :course_modules
 
+  # Course assignment relationships
+  has_many :user_course_assignments, dependent: :destroy
+  has_many :assigned_users, through: :user_course_assignments, source: :user
+
   # Validations
   validates :title, presence: true
   validates :prompt, presence: true
