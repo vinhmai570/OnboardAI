@@ -1,16 +1,25 @@
 class GenerateDetailedCourseJob < ApplicationJob
   queue_as :default
 
-  def perform(session_id, mentioned_document_ids = [], course_id = nil)
+  def perform(session_id, mentioned_document_ids = [], course_id = nil, conversation_id = nil)
     Rails.logger.info "Starting course structure generation for session: #{session_id}"
     Rails.logger.info "Using #{mentioned_document_ids.length} referenced documents"
 
     @session_id = session_id
-    # Find the latest conversation for this session
-    @conversation = Conversation.joins(:chat_messages)
-                                .where(session_id: session_id)
-                                .order(updated_at: :desc)
-                                .first
+    @course_id = course_id
+
+    # Find the specific conversation or fall back to session-based lookup
+    @conversation = if conversation_id
+      Conversation.find_by(id: conversation_id)
+    else
+      # Fallback for backward compatibility
+      Conversation.joins(:chat_messages)
+                  .where(session_id: session_id)
+                  .order(updated_at: :desc)
+                  .first
+    end
+
+    Rails.logger.info "Using conversation #{@conversation.id} for course structure generation" if @conversation
 
     begin
       # Get referenced documents and their chunks
@@ -35,10 +44,10 @@ class GenerateDetailedCourseJob < ApplicationJob
           # Broadcast completion to structure page
           broadcast_structure_completion(course_structure[:course_id])
         else
-          broadcast_structure_error("Failed to parse course structure. Please try again.")
+          broadcast_structure_error("Failed to parse course structure. Please try again.", @course_id)
         end
       else
-        broadcast_structure_error("Failed to generate course structure. Please try again.")
+        broadcast_structure_error("Failed to generate course structure. Please try again.", @course_id)
       end
 
     rescue => e
@@ -46,7 +55,7 @@ class GenerateDetailedCourseJob < ApplicationJob
       Rails.logger.error e.backtrace.first(5).join("\n")
 
       # Show error message on structure page
-      broadcast_structure_error("Failed to generate course structure. Please try again.")
+      broadcast_structure_error("Failed to generate course structure. Please try again.", @course_id)
     end
   end
 
@@ -103,8 +112,22 @@ class GenerateDetailedCourseJob < ApplicationJob
       Step types can be: "lesson", "exercise", "assessment", "reading".
     PROMPT
 
+    # Build comprehensive user prompt with conversation context
+    conversation_context = ""
+    if @conversation
+      user_messages = @conversation.chat_messages.where(message_type: 'user_prompt').order(:created_at)
+      if user_messages.any?
+        conversation_context = "\n\nCONVERSATION CONTEXT (User's requests and requirements):\n"
+        user_messages.each_with_index do |msg, index|
+          conversation_context += "#{index + 1}. #{msg.content}\n"
+        end
+      end
+    end
+
     user_prompt = if context.present?
-      "Create a structured course based on the following context from documents:\n\n#{context}"
+      "Create a structured course based on the following context from documents:\n\n#{context}#{conversation_context}"
+    elsif conversation_context.present?
+      "Create a structured course based on the following conversation requirements:#{conversation_context}"
     else
       "Create a structured onboarding course with modules and steps."
     end
@@ -214,38 +237,63 @@ class GenerateDetailedCourseJob < ApplicationJob
 
   # Turbo Stream broadcast methods for structure page
   def broadcast_structure_completion(course_id = nil)
+    channel_name = course_id ? "course_generator_#{course_id}" : "course_generator_#{@session_id}"
+
     if course_id
-      # Redirect to the structured course view
+      # Show completion message and redirect after delay
       Turbo::StreamsChannel.broadcast_replace_to(
-        "course_generator_#{@session_id}",
+        channel_name,
         target: "structure-loading",
-        html: "<script>window.location.href = '/admin/course_generator/show_structure?session_id=#{@session_id}&course_id=#{course_id}';</script>"
+        html: %{
+          <div class="text-center py-8 bg-green-50 border border-green-200 rounded-lg">
+            <div class="text-green-600 text-6xl mb-4">✅</div>
+            <h2 class="text-xl font-semibold text-green-900 mb-2">Course Structure Generated!</h2>
+            <p class="text-green-700 mb-4">Redirecting to your course structure...</p>
+          </div>
+          <script>
+            setTimeout(() => {
+              window.location.href = '/admin/course_generator/show_structure?course_id=#{course_id}';
+            }, 2000);
+          </script>
+        }
       )
     else
       Turbo::StreamsChannel.broadcast_replace_to(
-        "course_generator_#{@session_id}",
+        channel_name,
         target: "structure-loading",
         html: "<script>window.location.reload();</script>"
       )
     end
   end
 
-  def broadcast_structure_error(message)
-    Turbo::StreamsChannel.broadcast_replace_to(
-      "course_generator_#{@session_id}",
+  def broadcast_structure_error(message, course_id = nil)
+    channel_name = course_id ? "course_generator_#{course_id}" : "course_generator_#{@session_id}"
+
+    # Show error message and re-enable chat form
+    Turbo::StreamsChannel.broadcast_action_to(
+      channel_name,
+      action: :morph,
       target: "structure-loading",
       html: %{
-        <div class="text-center py-12">
+        <div class="text-center py-8 bg-red-50 border border-red-200 rounded-lg">
           <div class="text-red-600 text-6xl mb-4">⚠️</div>
-          <h2 class="text-xl font-semibold text-gray-900 mb-2">Generation Failed</h2>
-          <p class="text-gray-600 mb-6">#{message}</p>
-          <button onclick="window.location.reload()"
-                  class="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700">
-            🔄 Try Again
-          </button>
+          <h2 class="text-xl font-semibold text-red-900 mb-2">Generation Failed</h2>
+          <p class="text-red-700 mb-4">#{message}</p>
+          <div class="space-x-3">
+            <button onclick="window.location.reload()"
+                    class="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700">
+              🔄 Reload Page
+            </button>
+            <button onclick="document.getElementById('structure-loading').style.display='none'"
+                    class="inline-flex items-center px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-lg hover:bg-gray-700">
+              💬 Continue Chat
+            </button>
+          </div>
         </div>
       }
     )
+
+        # Note: Chat form will be re-enabled when user reloads page
   end
 
   def save_ai_response(content, message_type)

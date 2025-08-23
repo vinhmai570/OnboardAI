@@ -81,15 +81,22 @@ class Admin::CourseGeneratorController < ApplicationController
   def generate_detailed
     Rails.logger.info "Course structure generation requested"
 
-    # Find current conversation and get all referenced documents from chat history
+    # Find conversation - prioritize explicit conversation_id parameter, then session
     current_user_id = session[:user_id]
     session_id = session.id.to_s
 
-    conversation = if session[:conversation_id]
+    conversation = if params[:conversation_id].present?
+      # Use specific conversation ID from button parameter
+      Conversation.find_by(id: params[:conversation_id], user_id: current_user_id)
+    elsif session[:conversation_id]
+      # Fall back to session conversation
       Conversation.find_by(id: session[:conversation_id], user_id: current_user_id)
     else
+      # Last resort: find by session_id
       Conversation.find_by(user_id: current_user_id, session_id: session_id)
     end
+
+    Rails.logger.info "Using conversation #{conversation&.id} for course generation (from #{params[:conversation_id].present? ? 'parameter' : 'session'})"
 
     unless conversation
       Rails.logger.error "No conversation found for course generation"
@@ -119,11 +126,12 @@ class Admin::CourseGeneratorController < ApplicationController
 
     Rails.logger.info "Created course #{course.id} linked to conversation #{conversation.id}"
 
-    # Start structure generation job with course ID
-    GenerateDetailedCourseJob.perform_later(session_id, mentioned_document_ids, course.id)
+    # Start structure generation job with course ID and conversation context
+    GenerateDetailedCourseJob.perform_later(session_id, mentioned_document_ids, course.id, conversation.id)
 
-    # Redirect directly to the course structure page
-    redirect_to show_structure_admin_course_generator_index_path(course_id: course.id)
+        # For now, just redirect to the structure page with loading message
+    redirect_to show_structure_admin_course_generator_index_path(course_id: course.id),
+                notice: "Course structure generation started. Please wait while we create your course structure..."
   end
 
     def show_structure

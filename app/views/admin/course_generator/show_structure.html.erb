@@ -1,4 +1,4 @@
-<%= turbo_stream_from "course_generator_#{@session_id}" %>
+<%= turbo_stream_from "course_generator_#{@course_id}" if @course_id %>
 
 <div class="min-h-screen bg-gray-50">
   <!-- Top Navigation -->
@@ -24,7 +24,15 @@
   <!-- Main Content -->
   <div class="max-w-6xl mx-auto py-8 px-4">
     <div class="bg-white rounded-lg shadow-lg p-6">
-      <% if @loading && !@course_structure %>
+      <% if flash[:notice] %>
+        <!-- Show generation started message -->
+        <div id="structure-loading" class="text-center py-12">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <h2 class="text-xl font-semibold text-gray-900 mb-2">Generating Course Structure...</h2>
+          <p class="text-gray-600 mb-4"><%= flash[:notice] %></p>
+          <div class="text-sm text-gray-500">This page will update automatically when generation is complete.</div>
+        </div>
+      <% elsif @loading && !@course_structure %>
         <!-- Loading State -->
         <div id="structure-loading" class="text-center py-12">
           <div class="inline-flex items-center justify-center space-x-2">

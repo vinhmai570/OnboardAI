@@ -15,16 +15,16 @@
         <div class="flex-1">
           <div class="prose prose-sm max-w-none">
             <div class="markdown-content">
-              <%= raw Redcarpet::Markdown.new(Redcarpet::Render::HTML.new(hard_wrap: true), 
-                                             autolink: true, 
-                                             tables: true, 
+              <%= raw Redcarpet::Markdown.new(Redcarpet::Render::HTML.new(hard_wrap: true),
+                                             autolink: true,
+                                             tables: true,
                                              fenced_code_blocks: true).render(message.content) %>
             </div>
           </div>
           <div class="text-xs text-gray-400 mt-2">AI Assistant • <%= time_ago_in_words(message.created_at) %> ago</div>
           <% if message.message_type == 'ai_overview' %>
             <div class="mt-3">
-              <%= render 'generate_detailed_button' %>
+              <%= render 'generate_detailed_button', conversation: defined?(@current_conversation) ? @current_conversation : nil %>
             </div>
           <% end %>
         </div>

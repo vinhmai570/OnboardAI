@@ -1,0 +1,42 @@
+<!-- Disabled Chat Form During Course Structure Generation -->
+<div class="max-w-4xl mx-auto">
+  <div class="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+    <div class="flex items-center space-x-3">
+      <div class="flex-shrink-0">
+        <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-amber-600"></div>
+      </div>
+      <div class="flex-1">
+        <div class="text-sm font-medium text-amber-800">
+          Course Structure Generation in Progress
+        </div>
+        <div class="text-xs text-amber-700 mt-1">
+          Chat is temporarily disabled while we generate your course structure.
+          You'll be automatically redirected when complete.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Disabled input area to maintain layout -->
+  <div class="mt-4 opacity-50">
+    <div class="flex items-start space-x-3">
+      <div class="flex-1 relative">
+        <textarea
+          placeholder="Chat is disabled during course generation..."
+          rows="1"
+          disabled
+          class="block w-full border border-gray-300 bg-gray-100 rounded-lg px-3 py-2 text-sm text-gray-500 cursor-not-allowed"
+          style="min-height: 44px; max-height: 200px;"></textarea>
+      </div>
+      <button
+        disabled
+        class="inline-flex items-center px-4 py-2 bg-gray-300 text-gray-500 text-sm font-medium rounded-lg cursor-not-allowed"
+        style="height: 44px;">
+        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+        </svg>
+        Send
+      </button>
+    </div>
+  </div>
+</div>
