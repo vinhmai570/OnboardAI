@@ -302,10 +302,8 @@ class Admin::CourseGeneratorController < ApplicationController
     end
 
     unless conversation
-      # Create new conversation
-      title = prompt.strip.truncate(50, omission: '...')
-      title = title.gsub(/@\w+/, '').strip # Remove document references
-      title = title.present? ? title : "Course Generation #{Time.current.strftime('%m/%d %H:%M')}"
+      # Create new conversation with default title that can be replaced by AI
+      title = "Course Generation #{Time.current.strftime('%m/%d %H:%M')}"
 
       conversation = Conversation.create!(
         user_id: current_user_id,

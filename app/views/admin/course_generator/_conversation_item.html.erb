@@ -1,0 +1,25 @@
+<!-- Individual Conversation Item -->
+<%= form_with url: switch_conversation_admin_course_generator_index_path, method: :post, local: false,
+              class: "conversation-form",
+              data: { conversation_id: conversation.id } do |form| %>
+  <%= form.hidden_field :conversation_id, value: conversation.id %>
+<% end %>
+
+<div id="conversation-<%= conversation.id %>"
+     class="p-2 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer text-xs conversation-item <%= 'bg-blue-50 border-blue-200' if defined?(@current_conversation) && @current_conversation == conversation %>"
+     data-conversation-id="<%= conversation.id %>"
+     onclick="switchConversation(<%= conversation.id %>)">
+  <div class="flex items-center justify-between mb-1">
+    <span class="text-blue-600 font-mono text-xs">#<%= conversation.id %></span>
+    <span class="text-gray-400 text-xs"><%= time_ago_in_words(conversation.last_message_at) %> ago</span>
+  </div>
+  <div class="font-medium text-gray-900 truncate mb-1" id="conversation-title-<%= conversation.id %>">
+    <%= conversation.title %>
+  </div>
+  <div class="text-gray-500">
+    <%= conversation.message_count %> messages
+    <% if conversation.courses.any? %>
+      • <%= conversation.courses.count %> course<%= 's' if conversation.courses.count != 1 %>
+    <% end %>
+  </div>
+</div>

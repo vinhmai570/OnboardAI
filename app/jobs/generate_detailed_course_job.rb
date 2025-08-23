@@ -308,6 +308,9 @@ class GenerateDetailedCourseJob < ApplicationJob
     # Update conversation timestamp
     @conversation.touch
 
+    # Trigger title generation if this is the first AI response
+    @conversation.schedule_title_generation(delay: 5.seconds)
+
     Rails.logger.info "Saved AI detailed response to conversation #{@conversation.id}"
   end
 end
