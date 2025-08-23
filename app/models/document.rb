@@ -19,14 +19,14 @@ class Document < ApplicationRecord
   end
 
   def processing_status
-    return 'completed' if processing_complete?
-    return 'processing' if created_at > 1.minute.ago
-    return 'failed' if created_at < 5.minutes.ago && !processing_complete?
-    'processing'
+    return "completed" if processing_complete?
+    return "processing" if created_at > 1.minute.ago
+    return "failed" if created_at < 5.minutes.ago && !processing_complete?
+    "processing"
   end
 
   def processing_failed?
-    processing_status == 'failed'
+    processing_status == "failed"
   end
 
   def embeddings_complete?
@@ -53,18 +53,18 @@ class Document < ApplicationRecord
   def file_type
     return unless file.attached?
     case file.content_type
-    when 'application/pdf'
-      'PDF'
-    when 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-      'Word Document'
-    when 'application/msword'
-      'Word Document (Legacy)'
-    when 'text/plain'
-      'Plain Text'
-    when 'text/markdown'
-      'Markdown'
+    when "application/pdf"
+      "PDF"
+    when "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+      "Word Document"
+    when "application/msword"
+      "Word Document (Legacy)"
+    when "text/plain"
+      "Plain Text"
+    when "text/markdown"
+      "Markdown"
     else
-      'Unknown'
+      "Unknown"
     end
   end
 
@@ -73,15 +73,15 @@ class Document < ApplicationRecord
   def acceptable_file
     return unless file.attached?
 
-    acceptable_types = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                        'application/msword', 'text/plain', 'text/markdown']
+    acceptable_types = [ "application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                        "application/msword", "text/plain", "text/markdown" ]
 
     unless acceptable_types.include?(file.content_type)
-      errors.add(:file, 'must be a PDF, Word document, plain text, or markdown file')
+      errors.add(:file, "must be a PDF, Word document, plain text, or markdown file")
     end
 
     if file.byte_size > 10.megabytes
-      errors.add(:file, 'must be less than 10MB')
+      errors.add(:file, "must be less than 10MB")
     end
   end
 
@@ -95,10 +95,10 @@ class Document < ApplicationRecord
   end
 
   def number_to_human_size(size)
-    return '0 Bytes' if size == 0
+    return "0 Bytes" if size == 0
     k = 1024
-    sizes = ['Bytes', 'KB', 'MB', 'GB']
+    sizes = [ "Bytes", "KB", "MB", "GB" ]
     i = (Math.log(size) / Math.log(k)).floor
-    (size / (k ** i)).round(2).to_s + ' ' + sizes[i]
+    (size / (k ** i)).round(2).to_s + " " + sizes[i]
   end
 end

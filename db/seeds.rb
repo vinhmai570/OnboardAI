@@ -58,7 +58,7 @@ if Course.count == 0
       quiz_questions: [
         {
           "question" => "Which tool is essential for version control?",
-          "options" => ["Git", "Vim", "Docker", "Node.js"],
+          "options" => [ "Git", "Vim", "Docker", "Node.js" ],
           "correct_answer" => 0,
           "explanation" => "Git is the industry standard for version control."
         }
@@ -71,7 +71,7 @@ if Course.count == 0
       quiz_questions: [
         {
           "question" => "What command creates a new Git repository?",
-          "options" => ["git create", "git init", "git new", "git start"],
+          "options" => [ "git create", "git init", "git new", "git start" ],
           "correct_answer" => 1,
           "explanation" => "git init initializes a new Git repository."
         }

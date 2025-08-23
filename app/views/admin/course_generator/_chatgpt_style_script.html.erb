@@ -1,0 +1,189 @@
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const promptTextarea = document.getElementById('course-prompt');
+  const generateButton = document.getElementById('generate-button');
+  const mentionDropdown = document.getElementById('mention-dropdown');
+  const referencedDocs = document.getElementById('referenced-docs');
+  const chatMessages = document.getElementById('chat-messages');
+  const form = document.getElementById('course-prompt-form');
+
+  let documents = <%= @documents.map { |doc| { id: doc.id, title: doc.title, filename: sanitize_filename_for_mention(doc.title) } }.to_json.html_safe %>;
+
+  // Auto-expanding textarea
+  function adjustTextareaHeight() {
+    promptTextarea.style.height = '44px';
+    promptTextarea.style.height = Math.min(promptTextarea.scrollHeight, 200) + 'px';
+  }
+
+  promptTextarea.addEventListener('input', function(e) {
+    adjustTextareaHeight();
+    updateReferencedDocs();
+    handleMentionTyping(e);
+  });
+
+  // Auto-scroll chat to bottom when new messages arrive
+  const observer = new MutationObserver(function(mutations) {
+    mutations.forEach(function(mutation) {
+      if (mutation.addedNodes.length > 0) {
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      }
+    });
+  });
+
+  observer.observe(chatMessages, { childList: true });
+
+  // Document reference click handlers
+  document.querySelectorAll('.document-reference').forEach(doc => {
+    doc.addEventListener('click', function() {
+      const id = this.dataset.documentId;
+      const title = this.dataset.documentTitle;
+      const docData = documents.find(d => d.id == id);
+      if (docData) {
+        insertDocumentReference(docData.filename, title);
+      }
+    });
+  });
+
+  // Form submission
+  form.addEventListener('submit', function(e) {
+    const prompt = promptTextarea.value.trim();
+    if (!prompt) {
+      e.preventDefault();
+      return;
+    }
+  });
+
+  // Form submit handler - clear form after submission
+  form.addEventListener('turbo:submit-end', function(e) {
+    if (e.detail.success) {
+      promptTextarea.value = '';
+      adjustTextareaHeight();
+      updateReferencedDocs();
+    }
+  });
+
+  // Enter key handling
+  promptTextarea.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      if (promptTextarea.value.trim()) {
+        form.requestSubmit();
+      }
+    }
+  });
+
+    function insertDocumentReference(filename, title) {
+    const currentValue = promptTextarea.value;
+    const mention = `@${filename}`;
+
+    if (!currentValue.includes(mention)) {
+      const newValue = currentValue + (currentValue ? ' ' : '') + mention;
+      promptTextarea.value = newValue;
+      adjustTextareaHeight();
+      updateReferencedDocs();
+      promptTextarea.focus();
+    }
+  }
+
+    function updateReferencedDocs() {
+    const prompt = promptTextarea.value;
+    const mentions = prompt.match(/@([a-z0-9_.-]+)/gi) || [];
+
+    referencedDocs.innerHTML = '';
+
+    mentions.forEach(mention => {
+      const filename = mention.replace('@', '').toLowerCase();
+      const doc = documents.find(d => d.filename === filename);
+
+      if (doc) {
+        const badge = document.createElement('span');
+        badge.className = 'inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800';
+        badge.innerHTML = `📄 ${doc.title} <button type="button" class="ml-1 text-blue-600 hover:text-blue-900" onclick="removeDocumentReference('${filename}')">&times;</button>`;
+        referencedDocs.appendChild(badge);
+      }
+    });
+  }
+
+  window.removeDocumentReference = function(filename) {
+    const currentValue = promptTextarea.value;
+    const newValue = currentValue.replace(new RegExp(`@${filename}\\s*`, 'gi'), '').trim();
+    promptTextarea.value = newValue;
+    adjustTextareaHeight();
+    updateReferencedDocs();
+    promptTextarea.focus();
+  };
+
+  function handleMentionTyping(e) {
+    const value = e.target.value;
+    const cursorPos = e.target.selectionStart;
+    const textBeforeCursor = value.substring(0, cursorPos);
+    const lastAtIndex = textBeforeCursor.lastIndexOf('@');
+
+    if (lastAtIndex !== -1 && (lastAtIndex === 0 || value[lastAtIndex - 1] === ' ')) {
+      const searchText = textBeforeCursor.substring(lastAtIndex + 1);
+      if (searchText.length >= 0 && !searchText.includes(' ')) {
+        showMentionDropdown(searchText, lastAtIndex);
+      } else {
+        hideMentionDropdown();
+      }
+    } else {
+      hideMentionDropdown();
+    }
+  }
+
+    function showMentionDropdown(searchText, atIndex) {
+    const filteredDocs = documents.filter(doc =>
+      doc.title.toLowerCase().includes(searchText.toLowerCase()) ||
+      doc.filename.toLowerCase().includes(searchText.toLowerCase())
+    ).slice(0, 5);
+
+    if (filteredDocs.length > 0) {
+      mentionDropdown.innerHTML = filteredDocs.map(doc =>
+        `<div class="p-2 hover:bg-gray-100 cursor-pointer mention-option" data-filename="${doc.filename}" data-title="${doc.title}">
+          <div class="text-sm font-medium text-gray-900">${doc.title}</div>
+          <div class="text-xs text-gray-500">@${doc.filename}</div>
+        </div>`
+      ).join('');
+
+      mentionDropdown.classList.remove('hidden');
+
+      // Add click handlers to mention options
+      mentionDropdown.querySelectorAll('.mention-option').forEach(option => {
+        option.addEventListener('click', function() {
+          const filename = this.dataset.filename;
+          const title = this.dataset.title;
+
+          // Replace the @searchText with @filename
+          const currentValue = promptTextarea.value;
+          const beforeAt = currentValue.substring(0, atIndex);
+          const afterCursor = currentValue.substring(promptTextarea.selectionStart);
+
+          promptTextarea.value = beforeAt + `@${filename} ` + afterCursor;
+          promptTextarea.focus();
+
+          // Position cursor after the mention
+          const newCursorPos = atIndex + filename.length + 2; // @filename + space
+          promptTextarea.setSelectionRange(newCursorPos, newCursorPos);
+
+          hideMentionDropdown();
+          updateReferencedDocs();
+          adjustTextareaHeight();
+        });
+      });
+    } else {
+      hideMentionDropdown();
+    }
+  }
+
+  function hideMentionDropdown() {
+    mentionDropdown.classList.add('hidden');
+  }
+
+  // Initialize
+  updateReferencedDocs();
+  adjustTextareaHeight();
+
+  // Focus on textarea when page loads
+  promptTextarea.focus();
+});
+</script>

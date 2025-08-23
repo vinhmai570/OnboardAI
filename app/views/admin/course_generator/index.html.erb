@@ -1,0 +1,176 @@
+<%= turbo_stream_from "course_generator" %>
+
+<div class="h-screen bg-gray-50 flex flex-col">
+  <!-- Top Navigation -->
+  <nav class="bg-white border-b border-gray-200 px-4 py-3 flex-shrink-0">
+    <div class="flex items-center justify-between max-w-4xl mx-auto">
+      <div class="flex items-center space-x-4">
+        <h1 class="text-xl font-semibold text-gray-900">OnboardAI Course Generator</h1>
+        <span class="text-sm text-gray-500">AI-powered course creation</span>
+      </div>
+      <div class="flex items-center space-x-4">
+        <%= link_to "Dashboard", admin_dashboard_path, class: "text-gray-600 hover:text-gray-900" %>
+        <%= link_to "Documents", admin_documents_path, class: "text-gray-600 hover:text-gray-900" %>
+        <%= link_to "Logout", logout_path, method: :delete, class: "text-red-600 hover:text-red-900" %>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Chat Container -->
+  <div class="flex-1 overflow-hidden flex">
+    <!-- Document Sidebar -->
+    <div class="w-80 bg-white border-r border-gray-200 overflow-y-auto flex-shrink-0">
+      <div class="p-4">
+        <h3 class="text-sm font-medium text-gray-900 mb-3">📄 Available Documents</h3>
+        <div class="space-y-2">
+          <% if @documents.any? %>
+            <% @documents.each do |document| %>
+              <div class="p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer document-reference text-sm"
+                   data-document-id="<%= document.id %>"
+                   data-document-title="<%= document.title %>">
+                <div class="font-medium text-gray-900 truncate"><%= document.title %></div>
+                <div class="text-xs text-gray-500 mt-1">
+                  ID: <%= document.id %> • <%= document.document_chunks.count %> chunks
+                  <% if document.ai_ready? %>
+                    <span class="text-green-600">• Ready</span>
+                  <% end %>
+                </div>
+              </div>
+            <% end %>
+          <% else %>
+            <p class="text-sm text-gray-500">No documents available. <a href="<%= new_admin_document_path %>" class="text-blue-600 hover:text-blue-900">Upload documents</a> first.</p>
+          <% end %>
+        </div>
+
+        <div class="mt-6 p-3 bg-blue-50 rounded-lg">
+          <h4 class="text-xs font-medium text-blue-800 mb-2">💡 Usage</h4>
+          <ul class="text-xs text-blue-700 space-y-1">
+            <li>• Type your course request</li>
+            <li>• Use @<span class="font-mono">filename</span> to reference documents</li>
+            <li>• Click documents to insert references</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chat Area -->
+    <div class="flex-1 flex flex-col">
+      <!-- Messages Container -->
+      <div class="flex-1 overflow-y-auto p-4" id="chat-messages">
+        <!-- Welcome Message -->
+        <div class="flex items-start space-x-3 mb-6">
+          <div class="flex-shrink-0">
+            <div class="h-8 w-8 bg-blue-600 rounded-full flex items-center justify-center">
+              <svg class="h-4 w-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+              </svg>
+            </div>
+          </div>
+          <div class="flex-1">
+            <div class="text-sm text-gray-700">
+              👋 Hello! I'm your AI course generation assistant. Tell me what kind of onboarding course you'd like to create.
+              <br><br>
+              <strong>Examples:</strong><br>
+              • "Create a developer onboarding course using @developer_guide.md @setup_docs.pdf"<br>
+              • "Generate a security training program"<br>
+              • "Design a course for new sales team members"
+            </div>
+            <div class="text-xs text-gray-400 mt-2">AI Assistant</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Input Area -->
+      <div class="border-t border-gray-200 bg-white p-4 flex-shrink-0">
+        <div class="max-w-4xl mx-auto">
+          <%= form_with url: generate_admin_course_generator_index_path, method: :post, local: false, id: "course-prompt-form", class: "flex items-start space-x-3" do |form| %>
+            <div class="flex-1 relative">
+              <%= form.text_area :prompt, id: "course-prompt",
+                  placeholder: "Describe the course you want to create... Use @filename to reference documents",
+                  rows: 1,
+                  class: "block w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none text-sm",
+                  style: "min-height: 44px; max-height: 200px;" %>
+
+              <!-- Document Mention Dropdown -->
+              <div id="mention-dropdown" class="absolute z-10 w-full bg-white border border-gray-300 rounded-md shadow-lg hidden max-h-40 overflow-y-auto bottom-full mb-1"></div>
+
+              <!-- Referenced Documents -->
+              <div id="referenced-docs" class="flex flex-wrap gap-1 mt-2"></div>
+            </div>
+
+            <%= form.submit "Send",
+                class: "bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 text-sm font-medium h-11 flex items-center",
+                id: "generate-button" %>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.markdown-content h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+  color: #1f2937;
+}
+
+.markdown-content h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+  color: #374151;
+}
+
+.markdown-content ul {
+  margin: 0.75rem 0;
+  padding-left: 1.5rem;
+  list-style-type: disc;
+}
+
+.markdown-content ol {
+  margin: 0.75rem 0;
+  padding-left: 1.5rem;
+  list-style-type: decimal;
+}
+
+.markdown-content li {
+  margin: 0.25rem 0;
+  line-height: 1.5;
+}
+
+.markdown-content p {
+  margin: 0.75rem 0;
+  line-height: 1.6;
+}
+
+.markdown-content strong {
+  font-weight: 600;
+  color: #111827;
+}
+
+.markdown-content em {
+  font-style: italic;
+}
+
+.markdown-content code {
+  background-color: #f3f4f6;
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
+}
+
+.markdown-content blockquote {
+  border-left: 4px solid #d1d5db;
+  padding-left: 1rem;
+  margin: 1rem 0;
+  color: #6b7280;
+  font-style: italic;
+}
+</style>
+
+<%= render 'chatgpt_style_script' %>

@@ -12,7 +12,7 @@ if Rails.env.development?
 
     # Configure log level and format
     config.severity = Logger::INFO
-    config.prefix = '[HTTP]'
+    config.prefix = "[HTTP]"
     config.prefix_data_lines = true
     config.prefix_response_lines = true
     config.prefix_line_numbers = false

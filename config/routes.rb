@@ -5,19 +5,27 @@ Rails.application.routes.draw do
   get "courses/enroll"
   get "courses/complete_step"
   # Authentication routes
-  resources :sessions, only: [:new, :create, :destroy]
-  get '/login', to: 'sessions#new'
-  delete '/logout', to: 'sessions#destroy'
+  resources :sessions, only: [ :new, :create, :destroy ]
+  get "/login", to: "sessions#new"
+  delete "/logout", to: "sessions#destroy"
 
   # Root route - redirect to appropriate dashboard
-  root 'dashboard#index'
+  root "dashboard#index"
 
   # User dashboard
-  get 'dashboard', to: 'dashboard#index'
-  get 'dashboard/index'
+  get "dashboard", to: "dashboard#index"
+  get "dashboard/index"
 
   # Admin routes
   namespace :admin do
+    # Course Generator with AI
+    resources :course_generator, only: [ :index ] do
+      collection do
+        post :generate
+        post :generate_detailed
+        get :search_documents
+      end
+    end
     get "courses/index"
     get "courses/new"
     get "courses/create"
@@ -34,10 +42,10 @@ Rails.application.routes.draw do
     get "users/edit"
     get "users/update"
     get "users/destroy"
-    get 'dashboard', to: 'dashboard#index'
-    get 'dashboard/index'
+    get "dashboard", to: "dashboard#index"
+    get "dashboard/index"
 
-    resources :users, except: [:show]
+    resources :users, except: [ :show ]
     resources :documents do
       member do
         post :process_document
@@ -52,21 +60,21 @@ Rails.application.routes.draw do
         post :generate_details
         patch :publish
       end
-      resources :steps, except: [:index, :show]
+      resources :steps, except: [ :index, :show ]
     end
   end
 
   # User-facing course routes
-  resources :courses, only: [:index, :show] do
+  resources :courses, only: [ :index, :show ] do
     member do
       post :enroll
       patch :complete_step
     end
-    resources :steps, only: [:show]
+    resources :steps, only: [ :show ]
   end
 
   # Chat API
-  post '/chat', to: 'chat#create'
+  post "/chat", to: "chat#create"
 
   # Health check
   get "up" => "rails/health#show", as: :rails_health_check

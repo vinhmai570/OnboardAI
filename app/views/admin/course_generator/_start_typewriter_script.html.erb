@@ -1,0 +1,83 @@
+<script>
+(function() {
+  const content = document.getElementById('typewriter-content');
+  const overlay = document.getElementById('typewriter-overlay');
+  const cursor = overlay.querySelector('.typing-cursor');
+
+  if (!content || !overlay) return;
+
+  // Make content visible but start hidden
+  content.style.opacity = '1';
+
+  // Get all text nodes and elements
+  const walker = document.createTreeWalker(
+    content,
+    NodeFilter.SHOW_TEXT,
+    null,
+    false
+  );
+
+  const textNodes = [];
+  let node;
+  while (node = walker.nextNode()) {
+    if (node.textContent.trim().length > 0) {
+      textNodes.push(node);
+    }
+  }
+
+  // Start typewriter effect
+  let currentNodeIndex = 0;
+  let currentCharIndex = 0;
+  const originalTexts = textNodes.map(node => node.textContent);
+
+  // Hide all text initially
+  textNodes.forEach(node => {
+    node.textContent = '';
+  });
+
+  function typeNextCharacter() {
+    if (currentNodeIndex >= textNodes.length) {
+      // Typing complete - remove cursor
+      overlay.style.display = 'none';
+      return;
+    }
+
+    const currentNode = textNodes[currentNodeIndex];
+    const originalText = originalTexts[currentNodeIndex];
+
+    if (currentCharIndex < originalText.length) {
+      // Add next character
+      currentNode.textContent = originalText.substring(0, currentCharIndex + 1);
+      currentCharIndex++;
+
+      // Position cursor after current text
+      const rect = currentNode.parentElement.getBoundingClientRect();
+      const containerRect = content.getBoundingClientRect();
+      cursor.style.position = 'absolute';
+      cursor.style.left = (rect.right - containerRect.left) + 'px';
+      cursor.style.top = (rect.top - containerRect.top) + 'px';
+
+      // Continue typing with dynamic speed
+      const char = originalText[currentCharIndex - 1];
+      let delay = 30; // Base typing speed
+
+      if (char === ' ') delay = 80;      // Slower for spaces
+      else if (char === '.' || char === '!' || char === '?') delay = 300; // Pause at sentences
+      else if (char === ',' || char === ';') delay = 150; // Pause at commas
+      else if (char === '\n') delay = 200; // Pause at line breaks
+
+      setTimeout(typeNextCharacter, delay);
+    } else {
+      // Move to next text node
+      currentNodeIndex++;
+      currentCharIndex = 0;
+
+      // Small pause between elements
+      setTimeout(typeNextCharacter, 100);
+    }
+  }
+
+  // Start typing after a brief delay
+  setTimeout(typeNextCharacter, 200);
+})();
+</script>

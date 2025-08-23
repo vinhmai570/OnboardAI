@@ -11,14 +11,14 @@ class User < ApplicationRecord
   validates :role, presence: true, inclusion: { in: %w[admin user] }
 
   # Scopes
-  scope :admins, -> { where(role: 'admin') }
-  scope :users, -> { where(role: 'user') }
+  scope :admins, -> { where(role: "admin") }
+  scope :users, -> { where(role: "user") }
 
   def admin?
-    role == 'admin'
+    role == "admin"
   end
 
   def user?
-    role == 'user'
+    role == "user"
   end
 end

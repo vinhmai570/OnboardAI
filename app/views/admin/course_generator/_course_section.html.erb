@@ -1,0 +1,149 @@
+<div class="course-section mb-4 animate-fade-in">
+  <% case section_type %>
+  <% when "title_overview" %>
+    <% parsed_content = JSON.parse(content) rescue {} %>
+    <div class="border-l-4 border-green-500 pl-4 bg-green-50 rounded-r-lg p-3">
+      <h3 class="text-lg font-semibold text-gray-900"><%= parsed_content["title"] || "Generated Course" %></h3>
+      <p class="text-sm text-gray-600 mt-1"><%= parsed_content["description"] || "" %></p>
+      <div class="flex flex-wrap gap-2 mt-2">
+        <% if parsed_content["duration_estimate"] %>
+          <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+            ⏱️ <%= parsed_content["duration_estimate"] %>
+          </span>
+        <% end %>
+        <% if parsed_content["difficulty_level"] %>
+          <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+            📊 <%= parsed_content["difficulty_level"] %>
+          </span>
+        <% end %>
+      </div>
+    </div>
+
+  <% when "objectives" %>
+    <% parsed_content = JSON.parse(content) rescue {} %>
+    <div class="bg-blue-50 rounded-lg p-3 border border-blue-200">
+      <h4 class="font-medium text-gray-900 mb-2 flex items-center">
+        <span class="mr-2">🎯</span> Learning Objectives:
+      </h4>
+      <% if parsed_content.is_a?(Hash) && parsed_content["objectives"]&.is_a?(Array) && parsed_content["objectives"].any? %>
+        <ul class="list-disc list-inside text-sm text-gray-700 space-y-1">
+          <% parsed_content["objectives"].each do |objective| %>
+            <li class="animate-slide-in"><%= objective %></li>
+          <% end %>
+        </ul>
+      <% else %>
+        <p class="text-sm text-gray-600">Generating objectives...</p>
+      <% end %>
+    </div>
+
+  <% when "modules" %>
+    <% parsed_content = JSON.parse(content) rescue {} %>
+    <div class="bg-amber-50 rounded-lg p-3 border border-amber-200">
+      <h4 class="font-medium text-gray-900 mb-2 flex items-center">
+        <span class="mr-2">📚</span> Course Modules:
+      </h4>
+      <% if parsed_content.is_a?(Hash) && parsed_content["modules"]&.is_a?(Array) && parsed_content["modules"].any? %>
+        <div class="space-y-3">
+          <% parsed_content["modules"].each do |module_item| %>
+            <div class="border border-gray-200 rounded-lg p-3 bg-white animate-slide-in">
+              <div class="flex items-center justify-between mb-2">
+                <h5 class="font-medium text-gray-900">
+                  Module <%= module_item["order"] || "N/A" %>: <%= module_item["title"] || "Untitled Module" %>
+                </h5>
+                <% if module_item["duration"] %>
+                  <span class="text-xs text-gray-500"><%= module_item["duration"] %></span>
+                <% end %>
+              </div>
+              <% if module_item["description"] %>
+                <p class="text-sm text-gray-600 mb-2"><%= module_item["description"] %></p>
+              <% end %>
+              <% if module_item["topics"]&.is_a?(Array) && module_item["topics"].any? %>
+                <div class="flex flex-wrap gap-1">
+                  <% module_item["topics"].each do |topic| %>
+                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                      <%= topic %>
+                    </span>
+                  <% end %>
+                </div>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+      <% else %>
+        <p class="text-sm text-gray-600">Generating course modules...</p>
+      <% end %>
+    </div>
+
+  <% when "assessments" %>
+    <% parsed_content = JSON.parse(content) rescue {} %>
+    <div class="bg-yellow-50 rounded-lg p-3 border border-yellow-200">
+      <h4 class="font-medium text-gray-900 mb-2 flex items-center">
+        <span class="mr-2">📝</span> Assessment Suggestions:
+      </h4>
+      <% if parsed_content.is_a?(Hash) && parsed_content["assessments"]&.is_a?(Array) && parsed_content["assessments"].any? %>
+        <div class="space-y-2">
+          <% parsed_content["assessments"].each do |assessment| %>
+            <div class="bg-white border border-yellow-200 rounded-lg p-3 animate-slide-in">
+              <div class="flex items-center justify-between">
+                <h5 class="font-medium text-gray-900"><%= assessment["title"] || "Untitled Assessment" %></h5>
+                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                  <%= assessment["type"]&.capitalize || "Assessment" %>
+                </span>
+              </div>
+              <% if assessment["description"] %>
+                <p class="text-sm text-gray-600 mt-1"><%= assessment["description"] %></p>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+      <% else %>
+        <p class="text-sm text-gray-600">Generating assessment suggestions...</p>
+      <% end %>
+    </div>
+
+  <% when "referenced_docs" %>
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+      <h4 class="font-medium text-blue-800 mb-2 flex items-center">
+        <span class="mr-2">📄</span> Referenced Documents:
+      </h4>
+      <% if content.is_a?(Hash) && content["documents"]&.is_a?(Array) && content["documents"].any? %>
+        <div class="flex flex-wrap gap-1 mb-2">
+          <% content["documents"].each do |doc| %>
+            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 animate-slide-in">
+              <%= doc["title"] || "Document #{doc["id"]}" %>
+            </span>
+          <% end %>
+        </div>
+        <p class="text-xs text-blue-600">Used <%= content["chunks_used"] || 0 %> content chunks from these documents</p>
+      <% else %>
+        <p class="text-sm text-blue-600">No documents referenced for this course.</p>
+      <% end %>
+    </div>
+
+  <% else %>
+    <!-- Fallback for plain text content -->
+    <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+      <div class="text-sm text-gray-700 whitespace-pre-wrap"><%= content %></div>
+    </div>
+  <% end %>
+</div>
+
+<style>
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(-10px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-out;
+}
+
+.animate-slide-in {
+  animation: slideIn 0.3s ease-out;
+}
+</style>

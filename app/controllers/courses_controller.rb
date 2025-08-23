@@ -1,5 +1,5 @@
 class CoursesController < ApplicationController
-  before_action :set_course, only: [:show, :enroll, :complete_step]
+  before_action :set_course, only: [ :show, :enroll, :complete_step ]
 
   def index
     @courses = Course.published.includes(:admin)
@@ -13,7 +13,7 @@ class CoursesController < ApplicationController
 
   def enroll
     @progress = current_user.progresses.find_or_create_by(course: @course)
-    redirect_to course_path(@course), notice: 'Successfully enrolled in course!'
+    redirect_to course_path(@course), notice: "Successfully enrolled in course!"
   end
 
   def complete_step
@@ -21,9 +21,9 @@ class CoursesController < ApplicationController
 
     if params[:step_id].to_i == (@progress.completed_steps + 1)
       @progress.increment!(:completed_steps)
-      redirect_to course_path(@course), notice: 'Step completed!'
+      redirect_to course_path(@course), notice: "Step completed!"
     else
-      redirect_to course_path(@course), alert: 'Invalid step completion.'
+      redirect_to course_path(@course), alert: "Invalid step completion."
     end
   end
 

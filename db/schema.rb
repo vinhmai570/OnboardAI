@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_08_23_015150) do
+ActiveRecord::Schema[8.0].define(version: 2025_08_23_025809) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "vector"
@@ -67,7 +67,6 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_23_015150) do
 
   create_table "documents", force: :cascade do |t|
     t.string "title"
-    t.string "file_path"
     t.bigint "user_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false

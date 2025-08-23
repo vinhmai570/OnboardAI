@@ -124,7 +124,7 @@ class OpenaiService
       content: build_chat_system_prompt(context)
     }
 
-    messages = [system_message] + conversation_history + [{ role: "user", content: message }]
+    messages = [ system_message ] + conversation_history + [ { role: "user", content: message } ]
 
     response = client.chat(
       parameters: {
@@ -139,6 +139,45 @@ class OpenaiService
   rescue => e
     Rails.logger.error "OpenAI Chat Error: #{e.message}"
     "I'm sorry, I'm having trouble processing your request right now. Please try again later."
+  end
+
+  # Generate comprehensive course structure from prompt and document context
+  def self.generate_course_structure(prompt, context_chunks = [])
+    context = context_chunks.map(&:content).join("\n\n")
+
+    Rails.logger.info "Generating course structure with #{context_chunks.length} chunks of context"
+
+    system_prompt = build_course_structure_system_prompt
+    user_prompt = build_course_structure_prompt(prompt, context)
+
+    response = client.chat(
+      parameters: {
+        model: "gpt-4",
+        messages: [
+          {
+            role: "system",
+            content: system_prompt
+          },
+          {
+            role: "user",
+            content: user_prompt
+          }
+        ],
+        temperature: 0.7,
+        max_tokens: 2000
+      }
+    )
+
+    content = response.dig("choices", 0, "message", "content")
+    JSON.parse(content)
+  rescue JSON::ParserError => e
+    Rails.logger.error "OpenAI Course Structure JSON Parse Error: #{e.message}"
+    Rails.logger.error "Raw response: #{content}"
+    {}
+  rescue => e
+    Rails.logger.error "OpenAI Course Structure Error: #{e.message}"
+    Rails.logger.error e.backtrace.first(5).join("\n")
+    {}
   end
 
   private
@@ -204,6 +243,64 @@ class OpenaiService
       Use this context to provide accurate, helpful answers. If a question is outside the scope of the provided context, let the user know and offer to help with topics covered in their onboarding materials.
 
       Be friendly, encouraging, and focus on helping users learn effectively.
+    PROMPT
+  end
+
+  def self.build_course_structure_system_prompt
+    <<~PROMPT
+      You are an AI assistant specialized in creating comprehensive onboarding course structures. Your role is to analyze user requests and document content to generate well-organized, educational course outlines.
+
+      Return your response as a valid JSON object with this exact structure:
+      {
+        "title": "Course Title",
+        "description": "Brief course description",
+        "objectives": ["Learning objective 1", "Learning objective 2", "Learning objective 3"],
+        "duration_estimate": "2-3 hours",
+        "difficulty_level": "Beginner|Intermediate|Advanced",
+        "modules": [
+          {
+            "order": 1,
+            "title": "Module Title",
+            "description": "Module description",
+            "duration": "30 minutes",
+            "topics": [
+              {
+                "title": "Topic Title",
+                "content_overview": "What this topic covers",
+                "key_points": ["Key point 1", "Key point 2"],
+                "activities": ["Activity or exercise suggestion"]
+              }
+            ]
+          }
+        ],
+        "assessment_suggestions": [
+          {
+            "type": "quiz|assignment|project",
+            "title": "Assessment Title",
+            "description": "Assessment description"
+          }
+        ]
+      }
+
+      Guidelines:
+      - Create 3-5 modules per course
+      - Each module should have 2-4 topics
+      - Base content on provided document context when available
+      - Make courses practical and actionable
+      - Include realistic time estimates
+      - Suggest relevant assessments
+    PROMPT
+  end
+
+  def self.build_course_structure_prompt(user_prompt, context)
+    <<~PROMPT
+      User Request: #{user_prompt}
+
+      #{context.present? ? "Referenced Document Content:\n#{context}" : "No specific documents referenced."}
+
+      Please create a comprehensive course structure based on the user's request. If document content is provided, incorporate relevant information from those documents into the course structure. The course should be educational, well-organized, and practical for onboarding new team members.
+
+      Focus on creating actionable learning modules that build upon each other logically. Include specific topics, key learning points, and suggested activities or exercises where appropriate.
     PROMPT
   end
 end

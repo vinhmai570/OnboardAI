@@ -1,6 +1,6 @@
 class Admin::DocumentsController < ApplicationController
   before_action :require_admin
-  before_action :set_document, only: [:edit, :update, :destroy, :process_document]
+  before_action :set_document, only: [ :edit, :update, :destroy, :process_document ]
 
   def index
     @documents = Document.includes(:user).order(created_at: :desc)
@@ -14,7 +14,7 @@ class Admin::DocumentsController < ApplicationController
     @document = current_user.documents.build(document_params)
 
     if @document.save
-      redirect_to admin_documents_path, notice: 'Document was successfully uploaded and is being processed.'
+      redirect_to admin_documents_path, notice: "Document was successfully uploaded and is being processed."
     else
       render :new, status: :unprocessable_entity
     end
@@ -25,7 +25,7 @@ class Admin::DocumentsController < ApplicationController
 
   def update
     if @document.update(document_params)
-      redirect_to admin_documents_path, notice: 'Document was successfully updated.'
+      redirect_to admin_documents_path, notice: "Document was successfully updated."
     else
       render :edit, status: :unprocessable_entity
     end
@@ -51,14 +51,14 @@ class Admin::DocumentsController < ApplicationController
 
   def process_document
     DocumentProcessingJob.perform_later(@document)
-    redirect_to admin_documents_path, notice: 'Document processing started.'
+    redirect_to admin_documents_path, notice: "Document processing started."
   end
 
   def bulk_delete
     document_ids = params[:document_ids]&.reject(&:blank?)
 
     if document_ids.blank?
-      redirect_to admin_documents_path, alert: 'No documents selected for deletion.'
+      redirect_to admin_documents_path, alert: "No documents selected for deletion."
       return
     end
 

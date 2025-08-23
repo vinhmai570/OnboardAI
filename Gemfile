@@ -46,7 +46,10 @@ gem "solid_cable"
 gem "bootsnap", require: false
 
 # Load environment variables from .env file
-gem "dotenv-rails", groups: [:development, :test]
+gem "dotenv-rails", groups: [ :development, :test ]
+
+# Markdown parsing for AI responses
+gem "redcarpet"
 
 # Process manager for development
 gem "foreman", group: :development

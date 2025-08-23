@@ -22,11 +22,11 @@ class DocumentProcessingService
 
   def extract_text_from_file
     case @document.file.content_type
-    when 'application/pdf'
+    when "application/pdf"
       extract_pdf_text
-    when 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    when "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
       extract_docx_text
-    when 'text/plain', 'text/markdown'
+    when "text/plain", "text/markdown"
       extract_text_file
     else
       Rails.logger.error "Unsupported file type: #{@document.file.content_type}"
@@ -35,7 +35,7 @@ class DocumentProcessingService
   end
 
   def extract_pdf_text
-    require 'pdf-reader'
+    require "pdf-reader"
 
     reader = PDF::Reader.new(@document.file.download)
     text = reader.pages.map(&:text).join("\n\n")
@@ -46,10 +46,10 @@ class DocumentProcessingService
   end
 
   def extract_docx_text
-    require 'docx'
+    require "docx"
 
     # Save the file temporarily since docx gem needs a file path
-    temp_file = Tempfile.new(['document', '.docx'])
+    temp_file = Tempfile.new([ "document", ".docx" ])
     temp_file.binmode
     temp_file.write(@document.file.download)
     temp_file.close
@@ -66,7 +66,7 @@ class DocumentProcessingService
   end
 
   def extract_text_file
-    @document.file.download.force_encoding('UTF-8')
+    @document.file.download.force_encoding("UTF-8")
   rescue => e
     Rails.logger.error "Text file extraction error: #{e.message}"
     nil

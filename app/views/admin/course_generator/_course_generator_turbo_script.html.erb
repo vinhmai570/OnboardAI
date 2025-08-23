@@ -1,0 +1,160 @@
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const promptTextarea = document.getElementById('course-prompt');
+  const clearButton = document.getElementById('clear-prompt');
+  const mentionDropdown = document.getElementById('mention-dropdown');
+  const referencedDocs = document.getElementById('referenced-docs');
+  const chatMessages = document.getElementById('chat-messages');
+
+  let documents = <%= @documents.map { |doc| { id: doc.id, title: doc.title } }.to_json.html_safe %>;
+
+  // Auto-scroll chat to bottom when new messages arrive
+  const observer = new MutationObserver(function(mutations) {
+    mutations.forEach(function(mutation) {
+      if (mutation.addedNodes.length > 0) {
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      }
+    });
+  });
+
+  observer.observe(chatMessages, { childList: true });
+
+  // Document reference click handlers
+  document.querySelectorAll('.document-reference').forEach(doc => {
+    doc.addEventListener('click', function() {
+      const id = this.dataset.documentId;
+      const title = this.dataset.documentTitle;
+      insertDocumentReference(id, title);
+    });
+  });
+
+  // Clear button handler
+  clearButton.addEventListener('click', function() {
+    promptTextarea.value = '';
+    updateReferencedDocs();
+    promptTextarea.focus();
+  });
+
+  // Mention dropdown functionality
+  promptTextarea.addEventListener('input', function(e) {
+    updateReferencedDocs();
+    handleMentionTyping(e);
+  });
+
+  // Form submit handler - clear form after submission
+  document.getElementById('course-prompt-form').addEventListener('turbo:submit-end', function(e) {
+    if (e.detail.success) {
+      promptTextarea.value = '';
+      updateReferencedDocs();
+    }
+  });
+
+  function insertDocumentReference(id, title) {
+    const currentValue = promptTextarea.value;
+    const mention = `@${id}`;
+
+    // Check if mention already exists
+    if (!currentValue.includes(mention)) {
+      const newValue = currentValue + (currentValue ? ' ' : '') + mention;
+      promptTextarea.value = newValue;
+      updateReferencedDocs();
+      promptTextarea.focus();
+    }
+  }
+
+  function updateReferencedDocs() {
+    const prompt = promptTextarea.value;
+    const mentions = prompt.match(/@(\d+)/g) || [];
+
+    referencedDocs.innerHTML = '';
+
+    mentions.forEach(mention => {
+      const id = mention.replace('@', '');
+      const doc = documents.find(d => d.id == id);
+
+      if (doc) {
+        const badge = document.createElement('span');
+        badge.className = 'inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800';
+        badge.innerHTML = `📄 ${doc.title} <button type="button" class="ml-1 text-indigo-600 hover:text-indigo-900" onclick="removeDocumentReference('${id}')">&times;</button>`;
+        referencedDocs.appendChild(badge);
+      }
+    });
+  }
+
+  window.removeDocumentReference = function(id) {
+    const currentValue = promptTextarea.value;
+    const newValue = currentValue.replace(new RegExp(`@${id}\\s*`, 'g'), '').trim();
+    promptTextarea.value = newValue;
+    updateReferencedDocs();
+    promptTextarea.focus();
+  };
+
+  function handleMentionTyping(e) {
+    const value = e.target.value;
+    const cursorPos = e.target.selectionStart;
+    const textBeforeCursor = value.substring(0, cursorPos);
+    const lastAtIndex = textBeforeCursor.lastIndexOf('@');
+
+    if (lastAtIndex !== -1 && (lastAtIndex === 0 || value[lastAtIndex - 1] === ' ')) {
+      const searchText = textBeforeCursor.substring(lastAtIndex + 1);
+      if (searchText.length >= 0 && !searchText.includes(' ')) {
+        showMentionDropdown(searchText, lastAtIndex);
+      } else {
+        hideMentionDropdown();
+      }
+    } else {
+      hideMentionDropdown();
+    }
+  }
+
+  function showMentionDropdown(searchText, atIndex) {
+    const filteredDocs = documents.filter(doc =>
+      doc.title.toLowerCase().includes(searchText.toLowerCase()) ||
+      doc.id.toString().includes(searchText)
+    ).slice(0, 5);
+
+    if (filteredDocs.length > 0) {
+      mentionDropdown.innerHTML = filteredDocs.map(doc =>
+        `<div class="p-2 hover:bg-gray-100 cursor-pointer mention-option" data-id="${doc.id}" data-title="${doc.title}">
+          <div class="text-sm font-medium text-gray-900">${doc.title}</div>
+          <div class="text-xs text-gray-500">ID: ${doc.id}</div>
+        </div>`
+      ).join('');
+
+      mentionDropdown.classList.remove('hidden');
+
+      // Add click handlers to mention options
+      mentionDropdown.querySelectorAll('.mention-option').forEach(option => {
+        option.addEventListener('click', function() {
+          const id = this.dataset.id;
+          const title = this.dataset.title;
+
+          // Replace the @searchText with @id
+          const currentValue = promptTextarea.value;
+          const beforeAt = currentValue.substring(0, atIndex);
+          const afterCursor = currentValue.substring(promptTextarea.selectionStart);
+
+          promptTextarea.value = beforeAt + `@${id} ` + afterCursor;
+          promptTextarea.focus();
+
+          // Position cursor after the mention
+          const newCursorPos = atIndex + id.length + 2; // @id + space
+          promptTextarea.setSelectionRange(newCursorPos, newCursorPos);
+
+          hideMentionDropdown();
+          updateReferencedDocs();
+        });
+      });
+    } else {
+      hideMentionDropdown();
+    }
+  }
+
+  function hideMentionDropdown() {
+    mentionDropdown.classList.add('hidden');
+  }
+
+  // Initialize referenced docs display
+  updateReferencedDocs();
+});
+</script>
