@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_08_23_042538) do
+ActiveRecord::Schema[8.0].define(version: 2025_08_23_051732) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "vector"
@@ -61,6 +61,30 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_23_042538) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["user_id"], name: "index_conversations_on_user_id"
+  end
+
+  create_table "course_modules", force: :cascade do |t|
+    t.bigint "course_id", null: false
+    t.string "title"
+    t.integer "duration_hours"
+    t.text "description"
+    t.integer "order_position"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["course_id"], name: "index_course_modules_on_course_id"
+  end
+
+  create_table "course_steps", force: :cascade do |t|
+    t.bigint "course_module_id", null: false
+    t.string "title"
+    t.text "content"
+    t.string "step_type"
+    t.integer "duration_minutes"
+    t.integer "order_position"
+    t.text "resources"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["course_module_id"], name: "index_course_steps_on_course_module_id"
   end
 
   create_table "courses", force: :cascade do |t|
@@ -126,6 +150,8 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_23_042538) do
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "chat_messages", "conversations"
   add_foreign_key "conversations", "users"
+  add_foreign_key "course_modules", "courses"
+  add_foreign_key "course_steps", "course_modules"
   add_foreign_key "courses", "users", column: "admin_id"
   add_foreign_key "document_chunks", "documents"
   add_foreign_key "documents", "users"

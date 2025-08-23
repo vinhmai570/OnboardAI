@@ -6,19 +6,19 @@ class Admin::CourseGeneratorController < ApplicationController
     # Load current conversation and messages
     current_user_id = session[:user_id]
     session_id = session.id.to_s
-    
+
     # Try to find by session conversation_id first, then by session_id
     @current_conversation = if session[:conversation_id]
       Conversation.find_by(id: session[:conversation_id], user_id: current_user_id)
     else
       Conversation.find_by(user_id: current_user_id, session_id: session_id)
     end
-    
-    @chat_messages = @current_conversation&.chat_messages&.chronological || []
+
+    @chat_messages = @current_conversation&.chat_messages&.where.not(message_type: 'ai_detailed')&.chronological || []
     @conversations = Conversation.where(user_id: current_user_id).recent.limit(10)
   end
 
-        def generate
+  def generate
     Rails.logger.info "Course generation request received"
 
     @prompt = params[:prompt]&.strip
@@ -75,28 +75,96 @@ class Admin::CourseGeneratorController < ApplicationController
   end
 
   def generate_detailed
-    Rails.logger.info "Detailed course generation requested"
+    Rails.logger.info "Course structure generation requested"
 
-    respond_to do |format|
-      format.turbo_stream do
-        render turbo_stream: turbo_stream.append("chat-messages",
-          partial: "simple_loading_message")
-      end
+    # Find current conversation and get all referenced documents from chat history
+    current_user_id = session[:user_id]
+    session_id = session.id.to_s
+
+    conversation = if session[:conversation_id]
+      Conversation.find_by(id: session[:conversation_id], user_id: current_user_id)
+    else
+      Conversation.find_by(user_id: current_user_id, session_id: session_id)
     end
 
-    # Start detailed generation job
-    GenerateDetailedCourseJob.perform_later(session.id.to_s)
+    # Extract all document references from conversation messages
+    mentioned_document_ids = []
+    if conversation
+      conversation.chat_messages.where(message_type: 'user_prompt').each do |message|
+        mentioned_document_ids += extract_document_mentions(message.content)
+      end
+    end
+    mentioned_document_ids = mentioned_document_ids.uniq
+
+    Rails.logger.info "Found #{mentioned_document_ids.length} referenced documents for structure generation"
+
+    # Start structure generation job with document references
+    GenerateDetailedCourseJob.perform_later(session_id, mentioned_document_ids)
+
+    # Redirect to structure page with session ID
+    redirect_to show_structure_admin_course_generator_index_path(session_id: session_id)
+  end
+
+    def show_structure
+    @session_id = params[:session_id]
+    @course_id = params[:course_id]
+
+    @conversation = Conversation.joins(:chat_messages)
+                                .where(session_id: @session_id)
+                                .order(updated_at: :desc)
+                                .first
+
+    @course = nil
+    @course_modules = []
+    @loading = true
+
+    # Try to find course by ID first, or find the latest course associated with the conversation
+    if @course_id
+      @course = Course.includes(course_modules: :course_steps).find_by(id: @course_id)
+    elsif @conversation
+      # Find the latest course created from this conversation
+      @course = Course.where(prompt: "Generated from conversation #{@conversation.id}")
+                     .includes(course_modules: :course_steps)
+                     .order(created_at: :desc)
+                     .first
+    end
+
+    if @course
+      @course_modules = @course.course_modules.ordered
+      @loading = false
+      Rails.logger.info "Loaded course #{@course.id} with #{@course_modules.count} modules"
+    else
+      # Fallback to checking conversation messages for JSON structure
+      if @conversation
+        structure_message = @conversation.chat_messages
+                                       .where(message_type: 'ai_detailed')
+                                       .order(created_at: :desc)
+                                       .first
+
+        if structure_message
+          begin
+            # Try to parse as JSON first
+            @course_structure = JSON.parse(structure_message.content)
+            @loading = false
+          rescue JSON::ParserError
+            # Fallback to original text format
+            @course_structure = structure_message.content
+            @loading = false
+          end
+        end
+      end
+    end
   end
 
   def new_conversation
     Rails.logger.info "Starting new conversation"
-    
+
     # Clear only the conversation-related session data, keep user authentication
     session.delete(:conversation_id)
-    
+
     current_user_id = session[:user_id]
     @conversations = Conversation.where(user_id: current_user_id).recent.limit(10)
-    
+
     respond_to do |format|
       format.turbo_stream do
         render turbo_stream: [
@@ -111,16 +179,16 @@ class Admin::CourseGeneratorController < ApplicationController
   def switch_conversation
     conversation_id = params[:conversation_id]
     current_user_id = session[:user_id]
-    
+
     @conversation = Conversation.find_by(id: conversation_id, user_id: current_user_id)
-    
+
     if @conversation
       # Update session to point to this conversation
       session[:conversation_id] = @conversation.id
-      
-      @chat_messages = @conversation.chat_messages.chronological
+
+      @chat_messages = @conversation.chat_messages.where.not(message_type: 'ai_detailed').chronological
       @conversations = Conversation.where(user_id: current_user_id).recent.limit(10)
-      
+
       respond_to do |format|
         format.turbo_stream do
           render turbo_stream: [

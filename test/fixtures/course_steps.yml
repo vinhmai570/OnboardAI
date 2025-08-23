@@ -1,0 +1,19 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  course_module: one
+  title: MyString
+  content: MyText
+  step_type: MyString
+  duration_minutes: 1
+  order_position: 1
+  resources: MyText
+
+two:
+  course_module: two
+  title: MyString
+  content: MyText
+  step_type: MyString
+  duration_minutes: 1
+  order_position: 1
+  resources: MyText

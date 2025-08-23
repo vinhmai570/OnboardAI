@@ -7,3 +7,4 @@ alwaysApply: true
 - Avoid "fat" controllers and models by delegating complex operations and workflows to service objects or other appropriate abstractions.
 - Structure features to promote reusability, clarity, and separation of concerns, making the codebase easier to test, extend, and refactor.
 - Ensure that an error is raised if the application cannot connect to OpenAI or if OpenAI is not properly configured, so that such issues are not silently ignored.
+- Avoid restarting the container when making code changes within the /app directory.

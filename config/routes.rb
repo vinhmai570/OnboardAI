@@ -18,11 +18,28 @@ Rails.application.routes.draw do
 
   # Admin routes
   namespace :admin do
+    get "course_steps/index"
+    get "course_steps/new"
+    get "course_steps/create"
+    get "course_steps/edit"
+    get "course_steps/update"
+    get "course_steps/destroy"
+    get "course_steps/move_up"
+    get "course_steps/move_down"
+    get "course_modules/index"
+    get "course_modules/new"
+    get "course_modules/create"
+    get "course_modules/edit"
+    get "course_modules/update"
+    get "course_modules/destroy"
+    get "course_modules/move_up"
+    get "course_modules/move_down"
     # Course Generator with AI
     resources :course_generator, only: [ :index ] do
       collection do
         post :generate
         post :generate_detailed
+        get :show_structure
         post :new_conversation
         post :switch_conversation
         get :search_documents
@@ -63,6 +80,20 @@ Rails.application.routes.draw do
         patch :publish
       end
       resources :steps, except: [ :index, :show ]
+
+      # New structured course resources
+      resources :course_modules, except: [:show] do
+        member do
+          patch :move_up
+          patch :move_down
+        end
+        resources :course_steps, except: [:show] do
+          member do
+            patch :move_up
+            patch :move_down
+          end
+        end
+      end
     end
   end
 

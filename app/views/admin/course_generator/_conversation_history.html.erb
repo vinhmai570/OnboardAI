@@ -2,8 +2,8 @@
   <% chat_messages.each do |message| %>
     <% if message.user_message? %>
       <%= render 'simple_user_message', prompt: message.content %>
-    <% elsif message.ai_message? %>
-      <!-- AI Response Message -->
+    <% elsif message.ai_message? && message.message_type != 'ai_detailed' %>
+      <!-- AI Response Message (excluding course structures) -->
       <div class="flex items-start space-x-3 mb-6">
         <div class="flex-shrink-0">
           <div class="h-8 w-8 bg-blue-600 rounded-full flex items-center justify-center">

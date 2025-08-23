@@ -1,8 +1,9 @@
 <div class="mt-4 pt-3 border-t border-gray-200">
-  <%= button_to "Generate Detailed Course Content",
+  <%= button_to "Generate Course Structure",
       generate_detailed_admin_course_generator_index_path,
       method: :post,
-      local: false,
-      class: "inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2",
-      id: "generate-detailed-button" %>
+      local: true,
+      class: "inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2",
+      id: "generate-structure-button",
+      data: { disable_with: "⏳ Generating structure..." } %>
 </div>
