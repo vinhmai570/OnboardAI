@@ -20,6 +20,11 @@
   <div class="flex-1 overflow-hidden flex">
     <!-- Document Sidebar -->
     <div class="w-80 bg-white border-r border-gray-200 overflow-y-auto flex-shrink-0">
+      <!-- Conversation History -->
+      <div id="conversation-list">
+        <%= render 'conversation_list', conversations: @conversations %>
+      </div>
+      
       <div class="p-4">
         <h3 class="text-sm font-medium text-gray-900 mb-3">📄 Available Documents</h3>
         <div class="space-y-2">
@@ -57,27 +62,7 @@
     <div class="flex-1 flex flex-col">
       <!-- Messages Container -->
       <div class="flex-1 overflow-y-auto p-4" id="chat-messages">
-        <!-- Welcome Message -->
-        <div class="flex items-start space-x-3 mb-6">
-          <div class="flex-shrink-0">
-            <div class="h-8 w-8 bg-blue-600 rounded-full flex items-center justify-center">
-              <svg class="h-4 w-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
-              </svg>
-            </div>
-          </div>
-          <div class="flex-1">
-            <div class="text-sm text-gray-700">
-              👋 Hello! I'm your AI course generation assistant. Tell me what kind of onboarding course you'd like to create.
-              <br><br>
-              <strong>Examples:</strong><br>
-              • "Create a developer onboarding course using @developer_guide.md @setup_docs.pdf"<br>
-              • "Generate a security training program"<br>
-              • "Design a course for new sales team members"
-            </div>
-            <div class="text-xs text-gray-400 mt-2">AI Assistant</div>
-          </div>
-        </div>
+        <%= render 'conversation_history', chat_messages: @chat_messages %>
       </div>
 
       <!-- Input Area -->

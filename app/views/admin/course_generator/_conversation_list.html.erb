@@ -1,0 +1,40 @@
+<div class="p-4 border-b border-gray-200">
+  <div class="flex items-center justify-between mb-3">
+    <h3 class="text-sm font-medium text-gray-900">💬 Conversations</h3>
+    <%= form_with url: new_conversation_admin_course_generator_index_path, method: :post, local: false do |form| %>
+      <%= form.submit "New Chat", 
+          class: "text-xs bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700",
+          data: { confirm: "Start a new conversation? This will clear the current chat." } %>
+    <% end %>
+  </div>
+  
+  <% if conversations.any? %>
+    <div class="space-y-2">
+      <% conversations.each do |conversation| %>
+        <%= form_with url: switch_conversation_admin_course_generator_index_path, method: :post, local: false, 
+                      class: "conversation-form", 
+                      data: { conversation_id: conversation.id } do |form| %>
+          <%= form.hidden_field :conversation_id, value: conversation.id %>
+        <% end %>
+        <div class="p-2 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer text-xs conversation-item <%= 'bg-blue-50 border-blue-200' if defined?(@current_conversation) && @current_conversation == conversation %>"
+             data-conversation-id="<%= conversation.id %>" onclick="switchConversation(<%= conversation.id %>)">
+          <div class="font-medium text-gray-900 truncate"><%= conversation.title %></div>
+          <div class="text-gray-500 mt-1">
+            <%= conversation.message_count %> messages • <%= time_ago_in_words(conversation.last_message_at) %> ago
+          </div>
+        </div>
+      <% end %>
+    </div>
+    
+    <script>
+      function switchConversation(conversationId) {
+        const form = document.querySelector(`form[data-conversation-id="${conversationId}"]`);
+        if (form) {
+          form.requestSubmit();
+        }
+      }
+    </script>
+  <% else %>
+    <p class="text-xs text-gray-500">No previous conversations</p>
+  <% end %>
+</div>

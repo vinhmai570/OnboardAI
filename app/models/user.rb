@@ -5,6 +5,7 @@ class User < ApplicationRecord
   has_many :documents, dependent: :destroy
   has_many :progresses, dependent: :destroy
   has_many :courses, foreign_key: :admin_id, dependent: :destroy
+  has_many :conversations, dependent: :destroy
 
   # Validations
   validates :email, presence: true, uniqueness: true

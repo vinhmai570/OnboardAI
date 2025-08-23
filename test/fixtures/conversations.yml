@@ -1,0 +1,15 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  user: one
+  title: MyString
+  session_id: MyString
+  created_at: 2025-08-23 04:25:31
+  updated_at: 2025-08-23 04:25:31
+
+two:
+  user: two
+  title: MyString
+  session_id: MyString
+  created_at: 2025-08-23 04:25:31
+  updated_at: 2025-08-23 04:25:31

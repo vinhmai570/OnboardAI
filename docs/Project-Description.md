@@ -1,4 +1,4 @@
-# AI Hackathon Project: OnboardAI
+# AI Project: OnboardAI
 
 ## Project Purpose
 
@@ -6,7 +6,7 @@ Create an intuitive platform, OnboardAI, to simplify and personalize the onboard
 
 ## Feature Prioritization
 
-### Main Features (Must-Have for Hackathon)
+### Main Features (Must-Have)
 
 1. **Document Management**
 
@@ -47,14 +47,14 @@ Create an intuitive platform, OnboardAI, to simplify and personalize the onboard
    - Build a login screen for mock login functionality.
    - *Implementation*: Simple Rails authentication with Tailwind-styled login page.
 
-### TODO Features (Lower Priority, Post-Hackathon)
+### TODO Features (Lower Priority)
 
 - **Seamless Integration with GitHub/Notion/Google Drive**
   - Sync documents from external platforms using APIs (OAuth for authentication).
   - *Reason*: Time-intensive API integration; focus on core upload functionality first.
 - **Progress Analytics Dashboard**
   - Visualize user progress with completion rates and quiz performance.
-  - *Reason*: Requires additional frontend work (e.g., Chart.js); basic progress tracking sufficient for hackathon.
+  - *Reason*: Requires additional frontend work (e.g., Chart.js); basic progress tracking sufficient.
 
 ## Example Workflow
 
@@ -127,4 +127,4 @@ Create an intuitive platform, OnboardAI, to simplify and personalize the onboard
   - Neighbor gem performs cosine similarity searches on chunk embeddings to retrieve relevant content for course generation and chat responses.
   - Example: For a prompt referencing a document, retrieve top-k chunks to augment OpenAI’s input.
 
-This setup ensures OnboardAI can handle large documents efficiently, enabling precise retrieval for AI-driven features while maintaining hackathon feasibility.
+This setup ensures OnboardAI can handle large documents efficiently, enabling precise retrieval for AI-driven features while maintaining feasibility.

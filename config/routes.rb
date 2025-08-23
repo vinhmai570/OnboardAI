@@ -23,6 +23,8 @@ Rails.application.routes.draw do
       collection do
         post :generate
         post :generate_detailed
+        post :new_conversation
+        post :switch_conversation
         get :search_documents
       end
     end

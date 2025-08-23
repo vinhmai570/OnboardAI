@@ -1,8 +1,9 @@
 class GenerateCourseJob < ApplicationJob
   queue_as :default
 
-  def perform(prompt, mentioned_document_ids, session_id)
+  def perform(prompt, mentioned_document_ids, session_id, conversation_id = nil)
     Rails.logger.info "Starting streaming course generation for prompt: '#{prompt}'"
+    @conversation = Conversation.find_by(id: conversation_id) if conversation_id
 
     begin
       # Get referenced documents and their chunks
@@ -39,7 +40,10 @@ class GenerateCourseJob < ApplicationJob
     overview_response = generate_simple_overview(prompt, context_chunks)
 
     if overview_response.present?
-      # Stream the response word by word
+      # Save AI response to chat history
+      save_ai_response(overview_response, 'ai_overview')
+
+      # Stream the response line by line
       stream_text_response(overview_response)
 
       # Add generate detailed course button at the end
@@ -351,6 +355,21 @@ class GenerateCourseJob < ApplicationJob
       partial: "admin/course_generator/simple_error_message",
       locals: { message: message }
     )
+  end
+
+  def save_ai_response(content, message_type)
+    return unless @conversation
+
+    @conversation.chat_messages.create!(
+      message_type: message_type,
+      content: content,
+      ai_response: content
+    )
+
+    # Update conversation timestamp
+    @conversation.touch
+
+    Rails.logger.info "Saved AI response to conversation #{@conversation.id} (#{message_type})"
   end
 
   # Prompt building methods
