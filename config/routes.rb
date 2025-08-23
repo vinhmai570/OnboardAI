@@ -90,6 +90,8 @@ Rails.application.routes.draw do
         post :generate_tasks
         post :generate_details
         patch :publish
+        post :assign_users
+        delete 'unassign_user/:user_id', to: 'courses#unassign_user', as: 'unassign_user'
       end
       resources :steps, except: [ :index, :show ]
 
@@ -123,6 +125,10 @@ Rails.application.routes.draw do
     member do
       post :enroll
       patch :complete_step
+    end
+    collection do
+      get 'step_content/:id', to: 'courses#step_content', as: 'step_content'
+      get 'quiz_check/:course_id/:course_module_id/:step_id', to: 'courses#quiz_check', as: 'quiz_check'
     end
     resources :steps, only: [ :show ]
   end

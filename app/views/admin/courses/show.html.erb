@@ -1,2 +1,375 @@
-<h1>Admin::Courses#show</h1>
-<p>Find me in app/views/admin/courses/show.html.erb</p>
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <!-- Header Section -->
+  <div class="bg-white shadow rounded-lg">
+    <div class="px-4 py-5 sm:px-6">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center">
+          <div class="flex-shrink-0 h-12 w-12">
+            <div class="h-12 w-12 rounded-lg bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center">
+              <span class="text-white font-bold text-lg">📚</span>
+            </div>
+          </div>
+          <div class="ml-4">
+            <h1 class="text-2xl font-bold text-gray-900"><%= @course.title %></h1>
+            <p class="mt-1 text-sm text-gray-500">Course Management</p>
+          </div>
+        </div>
+
+        <div class="flex items-center space-x-3">
+          <span class="inline-flex px-3 py-1 text-sm font-semibold rounded-full <%= @course.published? ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800' %>">
+            <%= @course.status.capitalize %>
+          </span>
+
+          <div class="flex space-x-2">
+            <%= link_to 'Edit Course', edit_admin_course_path(@course),
+                class: 'inline-flex items-center px-3 py-1.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500' %>
+
+            <% unless @course.published? %>
+              <%= form_with url: publish_admin_course_path(@course), method: :patch, local: true, class: "inline-block" do |form| %>
+                <%= form.button type: :submit,
+                                class: 'inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500',
+                                data: { confirm: 'Are you sure you want to publish this course?' } do %>
+                  Publish Course
+                <% end %>
+              <% end %>
+            <% end %>
+
+            <%= link_to 'Back to Courses', admin_courses_path,
+                class: 'inline-flex items-center px-3 py-1.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500' %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Course Statistics -->
+  <div class="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+    <div class="bg-white overflow-hidden shadow rounded-lg">
+      <div class="p-5">
+        <div class="flex items-center">
+          <div class="flex-shrink-0">
+            <div class="w-8 h-8 bg-blue-100 rounded-md flex items-center justify-center">
+              📁
+            </div>
+          </div>
+          <div class="ml-5 w-0 flex-1">
+            <dl>
+              <dt class="text-sm font-medium text-gray-500 truncate">Modules</dt>
+              <dd class="text-lg font-medium text-gray-900"><%= @course_stats[:total_modules] %></dd>
+            </dl>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white overflow-hidden shadow rounded-lg">
+      <div class="p-5">
+        <div class="flex items-center">
+          <div class="flex-shrink-0">
+            <div class="w-8 h-8 bg-green-100 rounded-md flex items-center justify-center">
+              📝
+            </div>
+          </div>
+          <div class="ml-5 w-0 flex-1">
+            <dl>
+              <dt class="text-sm font-medium text-gray-500 truncate">Steps</dt>
+              <dd class="text-lg font-medium text-gray-900"><%= @course_stats[:total_steps] %></dd>
+            </dl>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white overflow-hidden shadow rounded-lg">
+      <div class="p-5">
+        <div class="flex items-center">
+          <div class="flex-shrink-0">
+            <div class="w-8 h-8 bg-purple-100 rounded-md flex items-center justify-center">
+              👥
+            </div>
+          </div>
+          <div class="ml-5 w-0 flex-1">
+            <dl>
+              <dt class="text-sm font-medium text-gray-500 truncate">Assigned Users</dt>
+              <dd class="text-lg font-medium text-gray-900"><%= @assignment_stats[:total_assigned] %></dd>
+            </dl>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white overflow-hidden shadow rounded-lg">
+      <div class="p-5">
+        <div class="flex items-center">
+          <div class="flex-shrink-0">
+            <div class="w-8 h-8 bg-orange-100 rounded-md flex items-center justify-center">
+              ⏱️
+            </div>
+          </div>
+          <div class="ml-5 w-0 flex-1">
+            <dl>
+              <dt class="text-sm font-medium text-gray-500 truncate">Duration</dt>
+              <dd class="text-lg font-medium text-gray-900">
+                <%= @course_stats[:total_duration] %> min
+              </dd>
+            </dl>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Two Column Layout -->
+  <div class="mt-8 lg:grid lg:grid-cols-3 lg:gap-6">
+    <!-- Course Structure (Left Column - 2/3 width) -->
+    <div class="lg:col-span-2">
+      <div class="bg-white shadow rounded-lg">
+        <div class="px-4 py-5 sm:px-6 border-b border-gray-200">
+          <div class="flex justify-between items-center">
+            <div>
+              <h3 class="text-lg leading-6 font-medium text-gray-900">Course Structure</h3>
+              <p class="mt-1 max-w-2xl text-sm text-gray-500">Course modules and steps</p>
+            </div>
+            <% if @course.published? %>
+              <%= link_to 'Manage Structure', admin_course_course_modules_path(@course),
+                  class: 'inline-flex items-center px-3 py-1.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500' %>
+            <% end %>
+          </div>
+        </div>
+
+        <div class="px-4 py-5 sm:p-6">
+          <% if @course_modules.any? %>
+            <div class="space-y-6">
+              <% @course_modules.each_with_index do |course_module, module_index| %>
+                <div class="border rounded-lg overflow-hidden">
+                  <div class="bg-gray-50 px-4 py-3 border-b">
+                    <div class="flex items-center justify-between">
+                      <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                          <div class="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center">
+                            <span class="text-sm font-medium text-indigo-600">
+                              <%= module_index + 1 %>
+                            </span>
+                          </div>
+                        </div>
+                        <div class="ml-3">
+                          <h4 class="text-sm font-medium text-gray-900">
+                            <%= course_module.title %>
+                          </h4>
+                          <p class="text-xs text-gray-500">
+                            <%= pluralize(course_module.course_steps.count, 'step') %> •
+                            <%= course_module.duration_hours %> hours
+                          </p>
+                        </div>
+                      </div>
+                      <div class="flex items-center space-x-2">
+                        <span class="text-xs text-gray-500">
+                          <%= course_module.course_steps.count %> steps
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="bg-white">
+                    <% if course_module.course_steps.any? %>
+                      <div class="divide-y divide-gray-200">
+                        <% course_module.course_steps.ordered.each_with_index do |step, step_index| %>
+                          <div class="px-4 py-3 flex items-center justify-between hover:bg-gray-50">
+                            <div class="flex items-center">
+                              <div class="flex-shrink-0 mr-3">
+                                <span class="text-lg"><%= step.icon %></span>
+                              </div>
+                              <div>
+                                <p class="text-sm font-medium text-gray-900">
+                                  <%= step.title %>
+                                </p>
+                                <p class="text-xs text-gray-500">
+                                  <%= step.step_type.humanize %> •
+                                  <%= step.duration_minutes %> min
+                                  <% if step.has_quiz? %>
+                                    • Has Quiz
+                                  <% end %>
+                                </p>
+                              </div>
+                            </div>
+                            <div class="flex items-center">
+                              <span class="text-xs text-gray-400">
+                                Step <%= step_index + 1 %>
+                              </span>
+                            </div>
+                          </div>
+                        <% end %>
+                      </div>
+                    <% else %>
+                      <div class="px-4 py-6 text-center">
+                        <p class="text-sm text-gray-500">No steps in this module</p>
+                      </div>
+                    <% end %>
+                  </div>
+                </div>
+              <% end %>
+            </div>
+          <% else %>
+            <div class="text-center py-12">
+              <div class="text-gray-400">
+                <svg class="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                </svg>
+              </div>
+              <h3 class="mt-2 text-sm font-medium text-gray-900">No course structure</h3>
+              <p class="mt-1 text-sm text-gray-500">This course doesn't have any modules or steps yet.</p>
+              <div class="mt-6">
+                <%= link_to 'Generate Course Content', admin_course_generator_path,
+                    class: 'inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500' %>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+
+    <!-- User Assignments (Right Column - 1/3 width) -->
+    <div class="mt-8 lg:mt-0">
+      <div class="bg-white shadow rounded-lg">
+        <div class="px-4 py-5 sm:px-6 border-b border-gray-200">
+          <h3 class="text-lg leading-6 font-medium text-gray-900">User Assignments</h3>
+          <p class="mt-1 max-w-2xl text-sm text-gray-500">
+            <%= @assignment_stats[:total_assigned] %> users assigned
+          </p>
+        </div>
+
+        <div class="px-4 py-5 sm:p-6">
+          <!-- Assignment Stats -->
+          <div class="space-y-3 mb-6">
+            <div class="flex justify-between text-sm">
+              <span class="text-gray-500">Completed:</span>
+              <span class="font-medium text-green-600">
+                <%= @assignment_stats[:completed_users] %>
+              </span>
+            </div>
+            <div class="flex justify-between text-sm">
+              <span class="text-gray-500">In Progress:</span>
+              <span class="font-medium text-blue-600">
+                <%= @assignment_stats[:in_progress_users] %>
+              </span>
+            </div>
+            <div class="flex justify-between text-sm">
+              <span class="text-gray-500">Not Started:</span>
+              <span class="font-medium text-gray-600">
+                <%= @assignment_stats[:total_assigned] - @assignment_stats[:completed_users] - @assignment_stats[:in_progress_users] %>
+              </span>
+            </div>
+          </div>
+
+          <!-- Assign New Users -->
+          <% if @available_users.any? %>
+            <%= form_with url: assign_users_admin_course_path(@course), method: :post, local: true, class: "mb-6" do |form| %>
+              <div class="space-y-3">
+                <label class="block text-sm font-medium text-gray-700">
+                  Assign Users to Course
+                </label>
+                <div class="max-h-40 overflow-y-auto border border-gray-300 rounded-md">
+                  <% @available_users.each do |user| %>
+                    <div class="flex items-center px-3 py-2 hover:bg-gray-50">
+                      <%= check_box_tag 'user_ids[]', user.id, false,
+                          id: "user_#{user.id}",
+                          class: "h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" %>
+                      <label for="user_<%= user.id %>" class="ml-2 block text-sm text-gray-900 cursor-pointer">
+                        <%= user.email %>
+                      </label>
+                    </div>
+                  <% end %>
+                </div>
+                <%= form.submit 'Assign Selected Users',
+                    class: 'w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500' %>
+              </div>
+            <% end %>
+          <% else %>
+            <div class="mb-6 p-3 bg-gray-50 rounded-md">
+              <p class="text-sm text-gray-500">All users are already assigned to this course.</p>
+            </div>
+          <% end %>
+
+          <!-- Assigned Users List -->
+          <div class="space-y-3">
+            <h4 class="text-sm font-medium text-gray-900">Assigned Users</h4>
+            <% if @assigned_users.any? %>
+              <div class="space-y-2">
+                <% @assigned_users.each do |user| %>
+                  <div class="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-md">
+                    <div class="flex items-center">
+                      <div class="flex-shrink-0 h-6 w-6">
+                        <div class="h-6 w-6 rounded-full bg-indigo-100 flex items-center justify-center">
+                          <span class="text-xs font-medium text-indigo-600">
+                            <%= user.email.first.upcase %>
+                          </span>
+                        </div>
+                      </div>
+                      <div class="ml-2">
+                        <p class="text-sm font-medium text-gray-900">
+                          <%= user.email %>
+                        </p>
+                      </div>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                      <%= form_with url: admin_course_unassign_user_path(@course, user),
+                                    method: :delete,
+                                    local: true,
+                                    class: "inline-block" do |form| %>
+                        <%= form.button type: :submit,
+                                        class: 'text-red-600 hover:text-red-900 text-xs underline',
+                                        data: { confirm: "Remove #{user.email} from this course?" } do %>
+                          Remove
+                        <% end %>
+                      <% end %>
+                    </div>
+                  </div>
+                <% end %>
+              </div>
+            <% else %>
+              <p class="text-sm text-gray-500">No users assigned to this course.</p>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Course Details -->
+  <div class="mt-8">
+    <div class="bg-white shadow rounded-lg">
+      <div class="px-4 py-5 sm:px-6 border-b border-gray-200">
+        <h3 class="text-lg leading-6 font-medium text-gray-900">Course Details</h3>
+        <p class="mt-1 max-w-2xl text-sm text-gray-500">Course description and metadata</p>
+      </div>
+      <div class="px-4 py-5 sm:p-6">
+        <dl class="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
+          <div>
+            <dt class="text-sm font-medium text-gray-500">Course Description</dt>
+            <dd class="mt-1 text-sm text-gray-900">
+              <%= simple_format(@course.prompt) %>
+            </dd>
+          </div>
+          <div>
+            <dt class="text-sm font-medium text-gray-500">Created By</dt>
+            <dd class="mt-1 text-sm text-gray-900">
+              <%= @course.admin.email %>
+            </dd>
+          </div>
+          <div>
+            <dt class="text-sm font-medium text-gray-500">Created Date</dt>
+            <dd class="mt-1 text-sm text-gray-900">
+              <%= @course.created_at.strftime('%B %d, %Y at %I:%M %p') %>
+            </dd>
+          </div>
+          <div>
+            <dt class="text-sm font-medium text-gray-500">Last Updated</dt>
+            <dd class="mt-1 text-sm text-gray-900">
+              <%= @course.updated_at.strftime('%B %d, %Y at %I:%M %p') %>
+            </dd>
+          </div>
+        </dl>
+      </div>
+    </div>
+  </div>
+</div>

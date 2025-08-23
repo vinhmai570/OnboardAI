@@ -117,7 +117,12 @@ export default class extends Controller {
       const courseId = this.courseIdValue
 
       // Make an AJAX request to check if this step has a quiz
-      fetch(`/admin/courses/${courseId}/course_modules/${moduleId}/course_steps/${stepId}/quiz_check`, {
+      const isAdmin = window.location.pathname.includes('/admin/')
+      const quizCheckUrl = isAdmin
+        ? `/admin/courses/${courseId}/course_modules/${moduleId}/course_steps/${stepId}/quiz_check`
+        : `/courses/quiz_check/${courseId}/${moduleId}/${stepId}`
+
+      fetch(quizCheckUrl, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
@@ -246,8 +251,13 @@ export default class extends Controller {
   // Direct database fallback - make a simple request to get step content
   async loadStepFromDatabase(stepId, fallbackData) {
     try {
-      // Try a simple fetch without complex headers
-      const response = await fetch(`/admin/course_generator/step_content/${stepId}`)
+      // Try a simple fetch - check current path to determine API endpoint
+      const isAdmin = window.location.pathname.includes('/admin/')
+      const apiUrl = isAdmin
+        ? `/admin/course_generator/step_content/${stepId}`
+        : `/courses/step_content/${stepId}`
+
+      const response = await fetch(apiUrl)
 
       if (response.ok) {
         const text = await response.text()

@@ -49,8 +49,8 @@ class CoursesController < ApplicationController
     # Get user progress data if logged in
     @progress_data = current_user&.progress_for_course(@course)
 
-    # Load course structure
-    @course_modules = @course.course_modules.includes(course_steps: [:quiz, :user_progresses]).ordered
+    # Load course structure with the same data as admin view
+    @course_modules = @course.course_modules.includes(:course_steps).ordered
   end
 
   def enroll
@@ -86,6 +86,62 @@ class CoursesController < ApplicationController
       render json: { success: true, message: 'Step completed successfully!' }
     else
       render json: { success: false, message: 'Failed to complete step', errors: @progress.errors.full_messages }
+    end
+  end
+
+  def step_content
+    step = CourseStep.find(params[:id])
+    course_module = step.course_module
+
+    # Check if user has access to this course
+    unless can_access_course?(course_module.course)
+      render json: { error: "Access denied" }, status: :forbidden
+      return
+    end
+
+    render json: {
+      id: step.id,
+      title: step.title,
+      step_type: step.step_type,
+      content: step.content,
+      detailed_content: step.detailed_content,
+      duration_minutes: step.duration_minutes,
+      module_title: course_module.title,
+      content_generated: step.content_generated?,
+      icon: step.icon
+    }
+  end
+
+  def quiz_check
+    course = Course.find(params[:course_id])
+    course_module = course.course_modules.find(params[:course_module_id])
+    course_step = course_module.course_steps.find(params[:step_id])
+
+    # Check if user has access to this course
+    unless can_access_course?(course)
+      render json: { error: "Access denied" }, status: :forbidden
+      return
+    end
+
+    quiz = course_step.quiz
+
+    respond_to do |format|
+      format.json do
+        if quiz
+          render json: {
+            has_quiz: true,
+            quiz_id: quiz.id,
+            quiz_title: quiz.title,
+            question_count: quiz.quiz_questions.count
+          }
+        else
+          render json: {
+            has_quiz: false,
+            step_type: course_step.step_type,
+            step_title: course_step.title
+          }
+        end
+      end
     end
   end
 

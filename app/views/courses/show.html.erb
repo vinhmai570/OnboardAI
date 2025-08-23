@@ -1,252 +1,381 @@
 <% content_for :title, @course.title %>
 
-<div class="min-h-screen bg-gray-50">
-  <!-- Header -->
-  <div class="bg-white shadow-sm border-b">
-    <div class="max-w-6xl mx-auto px-4 py-6">
-      <div class="flex items-center justify-between">
-        <div>
-          <nav class="flex items-center space-x-2 text-sm text-gray-500 mb-2">
-            <%= link_to "My Courses", courses_path, class: "hover:text-gray-900" %>
-            <span>›</span>
-            <span><%= @course.title %></span>
-          </nav>
-          <h1 class="text-2xl font-bold text-gray-900"><%= @course.title %></h1>
-          <% if @course.description.present? %>
-            <p class="text-gray-600 mt-1"><%= @course.description %></p>
-          <% end %>
-        </div>
+<div class="min-h-screen bg-violet-100"
+     data-controller="course-docs"
+     data-course-docs-course-id-value="<%= @course.id %>">
 
-        <div class="text-right">
-          <% if defined?(@progress_data) && @progress_data %>
-            <div class="text-2xl font-bold text-blue-600 mb-1">
-              <%= @progress_data[:completion_percentage].round(1) %>%
+  <!-- Top Navigation -->
+  <nav class="bg-white border-b border-gray-200 px-4 py-3 sticky top-0 z-30 shadow-sm">
+    <div class="flex items-center justify-between max-w-7xl mx-auto">
+      <div class="flex items-center space-x-4">
+        <%= link_to courses_path, class: "text-violet-600 hover:text-violet-800 font-medium" do %>
+          <svg class="w-5 h-5 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+          </svg>
+          Back to Courses
+        <% end %>
+        <h1 class="text-xl font-bold text-gray-900"><%= @course.title %></h1>
+        <span class="px-3 py-1 bg-lime-200 text-gray-800 text-sm font-semibold rounded-full">
+          <%= @course.full_content_generated? ? '✅ Ready' : '⏳ Generating' %>
+        </span>
+      </div>
+      <div class="flex items-center space-x-4">
+        <button data-action="click->course-docs#toggleLeftSidebar"
+                class="lg:hidden p-2 text-gray-600 hover:text-gray-900">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+          </svg>
+        </button>
+        <button data-action="click->course-docs#toggleRightSidebar"
+                class="p-2 text-gray-600 hover:text-gray-900" title="AI Assistant">
+          💬
+        </button>
+        <%= link_to "My Dashboard", dashboard_path, class: "text-gray-600 hover:text-gray-900 font-medium" %>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Three Column Layout -->
+  <div class="flex h-screen-minus-nav">
+
+    <!-- Left Sidebar - Module Navigation -->
+    <aside class="w-80 lg:w-96 bg-violet-50 border-r border-gray-200 overflow-y-auto flex-shrink-0"
+           data-course-docs-target="leftSidebar">
+      <div class="p-4 lg:p-6">
+        <h2 class="text-lg font-bold text-gray-900 mb-6">Course Modules</h2>
+
+        <% if flash[:notice] %>
+          <!-- Show generation message in sidebar -->
+          <div id="full-course-loading" class="bg-violet-100 border border-violet-300 rounded-lg p-4 mb-4">
+            <div class="flex items-center space-x-2 mb-2">
+              <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-violet-600"></div>
+              <span class="text-sm font-semibold text-violet-900">Generating Content...</span>
             </div>
-            <div class="text-sm text-gray-600">Complete</div>
-          <% end %>
-        </div>
-      </div>
-    </div>
-  </div>
+            <p class="text-xs text-violet-700"><%= flash[:notice] %></p>
+          </div>
+        <% end %>
 
-  <div class="max-w-6xl mx-auto px-4 py-8">
-    <!-- Course Overview Stats -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-      <div class="bg-white p-4 rounded-lg shadow-sm">
-        <div class="text-2xl font-bold text-blue-600"><%= @course.course_modules.count %></div>
-        <div class="text-blue-800 text-sm">Modules</div>
-      </div>
-      <div class="bg-white p-4 rounded-lg shadow-sm">
-        <div class="text-2xl font-bold text-green-600"><%= @course.course_modules.sum { |m| m.course_steps.count } %></div>
-        <div class="text-green-800 text-sm">Steps</div>
-      </div>
-      <div class="bg-white p-4 rounded-lg shadow-sm">
-        <div class="text-2xl font-bold text-purple-600"><%= Quiz.joins(course_step: { course_module: :course }).where(courses: { id: @course.id }).count %></div>
-        <div class="text-purple-800 text-sm">Quizzes</div>
-      </div>
-      <div class="bg-white p-4 rounded-lg shadow-sm">
-        <div class="text-2xl font-bold text-orange-600"><%= @course.course_modules.sum(&:total_duration_minutes) %></div>
-        <div class="text-orange-800 text-sm">Minutes</div>
-      </div>
-    </div>
-
-    <!-- Course Content -->
-    <div class="bg-white rounded-lg shadow-sm">
-      <div class="px-6 py-4 border-b bg-gray-50">
-        <h2 class="text-lg font-semibold text-gray-900">Course Content</h2>
-        <p class="text-sm text-gray-600">Complete the steps in order to master the material</p>
-      </div>
-
-      <div class="p-6">
-        <% if @course.course_modules.any? %>
-          <div class="space-y-6">
-            <% @course.course_modules.ordered.each_with_index do |course_module, module_index| %>
-              <div class="border border-gray-200 rounded-lg overflow-hidden">
-                <!-- Module Header -->
-                <div class="bg-gray-50 px-6 py-4 border-b">
-                  <div class="flex items-center justify-between">
-                    <div class="flex items-center space-x-3">
-                      <span class="flex-shrink-0 w-8 h-8 bg-blue-100 text-blue-800 rounded-full flex items-center justify-center text-sm font-semibold">
-                        <%= module_index + 1 %>
-                      </span>
-                      <div>
-                        <h3 class="text-lg font-semibold text-gray-900"><%= course_module.title %></h3>
-                        <% if course_module.description.present? %>
-                          <p class="text-sm text-gray-600 mt-1"><%= course_module.description %></p>
-                        <% end %>
-                      </div>
-                    </div>
-
-                    <div class="text-sm text-gray-500">
-                      <%= course_module.course_steps.count %> steps •
-                      <%= course_module.total_duration_minutes %> min
+        <nav class="space-y-2" data-course-docs-target="moduleNav">
+          <% @course_modules.each_with_index do |course_module, module_index| %>
+            <div class="module-group">
+              <!-- Module Header -->
+              <button class="w-full flex items-start justify-between p-4 text-left bg-white rounded-lg border hover:bg-violet-50 transition-colors shadow-sm"
+                      data-action="click->course-docs#toggleModule"
+                      data-module-id="<%= course_module.id %>"
+                      data-course-docs-target="moduleToggle">
+                <div class="flex items-start space-x-3 flex-1 min-w-0">
+                  <span class="flex-shrink-0 w-7 h-7 bg-lime-400 text-gray-800 rounded-full flex items-center justify-center text-xs font-bold mt-0.5">
+                    <%= module_index + 1 %>
+                  </span>
+                  <div class="flex-1 min-w-0">
+                    <div class="text-sm font-bold text-gray-900 leading-5 break-words pr-2"><%= course_module.title %></div>
+                    <div class="text-xs text-gray-600 mt-1 flex items-center flex-wrap gap-1">
+                      <span class="bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full font-medium"><%= course_module.course_steps.count %> steps</span>
+                      <span class="bg-gray-100 px-2 py-0.5 rounded-full"><%= course_module.total_duration_minutes %> min</span>
                     </div>
                   </div>
                 </div>
+                <svg class="w-4 h-4 text-gray-400 transform transition-transform duration-200 flex-shrink-0 mt-1"
+                     data-course-docs-target="moduleIcon"
+                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                </svg>
+              </button>
 
-                <!-- Module Steps -->
-                <div class="divide-y divide-gray-100">
-                  <% course_module.course_steps.ordered.each_with_index do |step, step_index| %>
-                    <%
-                      step_progress = step.user_progresses.find_by(user: current_user) if current_user
-                      is_completed = step_progress&.completed?
-                      is_in_progress = step_progress&.in_progress?
-                      has_quiz = step.has_quiz?
-                    %>
-
-                    <div class="px-6 py-4 hover:bg-gray-50 transition-colors <%= 'bg-green-50' if is_completed %>">
-                      <div class="flex items-center justify-between">
-                        <div class="flex items-center space-x-4 flex-1">
-                          <!-- Step Status Icon -->
-                          <div class="flex-shrink-0">
-                            <% if is_completed %>
-                              <div class="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
-                                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                                </svg>
-                              </div>
-                            <% elsif is_in_progress %>
-                              <div class="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
-                                <div class="w-2 h-2 bg-white rounded-full"></div>
-                              </div>
-                            <% else %>
-                              <div class="w-6 h-6 bg-gray-300 rounded-full"></div>
-                            <% end %>
-                          </div>
-
-                          <!-- Step Content -->
-                          <div class="flex-1 min-w-0">
-                            <div class="flex items-center space-x-2 mb-1">
-                              <span class="text-lg"><%= step.icon %></span>
-                              <h4 class="font-medium text-gray-900"><%= step.title %></h4>
-                              <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
-                                <%= step.step_type.humanize %>
-                              </span>
-                              <% if has_quiz %>
-                                <span class="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded-full">
-                                  📝 Quiz Available
-                                </span>
-                              <% end %>
-                            </div>
-
-                            <% if step.content.present? %>
-                              <p class="text-sm text-gray-600 truncate">
-                                <%= truncate(strip_tags(step.content), length: 100) %>
-                              </p>
-                            <% end %>
-
-                            <div class="flex items-center space-x-3 mt-2 text-xs text-gray-500">
-                              <span><%= step.duration_minutes %> min</span>
-                              <% if step_progress %>
-                                <span>•</span>
-                                <span class="<%= is_completed ? 'text-green-600' : is_in_progress ? 'text-blue-600' : 'text-gray-500' %>">
-                                  <%= step_progress.status.humanize %>
-                                </span>
-                                <% if step_progress.score %>
-                                  <span>• Score: <%= step_progress.score %>%</span>
-                                <% end %>
-                              <% end %>
-                            </div>
-                          </div>
-                        </div>
-
-                        <!-- Step Action Button -->
-                        <div class="flex-shrink-0 ml-4">
-                          <% if step.step_type == 'assessment' && has_quiz %>
-                            <%= link_to quiz_path(step.quiz),
-                                        class: "inline-flex items-center px-4 py-2 bg-purple-600 text-white text-sm rounded-lg hover:bg-purple-700 transition-colors" do %>
-                              <% if step.quiz.user_completed?(current_user) %>
-                                📊 View Results
-                              <% else %>
-                                🚀 Take Quiz
-                              <% end %>
-                            <% end %>
-                          <% else %>
-                            <button class="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
-                                    onclick="alert('Step content viewer coming soon!')">
-                              <% if is_completed %>
-                                👁️ Review
-                              <% elsif is_in_progress %>
-                                ▶️ Continue
-                              <% else %>
-                                🚀 Start
-                              <% end %>
-                            </button>
-                          <% end %>
-                        </div>
+              <!-- Module Steps (Hidden by default) -->
+              <div class="hidden mt-3 ml-8 space-y-2"
+                   data-course-docs-target="moduleSteps"
+                   data-module-id="<%= course_module.id %>">
+                <% course_module.course_steps.ordered.each_with_index do |step, step_index| %>
+                  <button class="w-full text-left p-3 text-sm text-gray-700 hover:bg-white hover:text-gray-900 hover:shadow-sm rounded-lg transition-all flex items-start space-x-3 border border-transparent hover:border-violet-200"
+                          data-action="click->course-docs#selectStep"
+                          data-step-id="<%= step.id %>"
+                          data-module-id="<%= course_module.id %>"
+                          data-step-title="<%= step.title.gsub('"', '&quot;') %>"
+                          data-step-type="<%= step.step_type %>"
+                          data-step-content="<%= step.content&.gsub('"', '&quot;') || '' %>"
+                          data-step-detailed-content="<%= step.detailed_content&.gsub('"', '&quot;') || '' %>"
+                          data-step-duration="<%= step.duration_minutes %>"
+                          data-step-generated="<%= step.content_generated? %>"
+                          data-module-title="<%= course_module.title.gsub('"', '&quot;') %>"
+                          data-course-docs-target="stepButton">
+                    <span class="text-lg flex-shrink-0"><%= step.icon %></span>
+                    <div class="flex-1 min-w-0">
+                      <div class="font-semibold text-gray-900 leading-5 break-words pr-1"><%= step.title %></div>
+                      <div class="text-xs text-gray-500 mt-1 flex items-center flex-wrap gap-1">
+                        <span class="bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full font-semibold"><%= step.step_type.humanize %></span>
+                        <span class="bg-gray-100 px-2 py-0.5 rounded-full"><%= step.duration_minutes %> min</span>
+                        <% if step.content_generated? %>
+                          <span class="bg-lime-100 text-lime-700 px-2 py-0.5 rounded-full font-semibold">✓ Ready</span>
+                        <% else %>
+                          <span class="bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full font-semibold">⏳ Pending</span>
+                        <% end %>
                       </div>
                     </div>
-                  <% end %>
+                  </button>
+                <% end %>
+              </div>
+            </div>
+          <% end %>
+        </nav>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 overflow-y-auto bg-white" data-course-docs-target="mainContent">
+      <div class="max-w-4xl mx-auto px-8 py-6">
+
+        <!-- Welcome State (No Step Selected) -->
+        <div id="welcome-state" data-course-docs-target="welcomeState">
+          <div class="text-center py-16">
+            <div class="mb-6">
+              <svg class="w-16 h-16 text-violet-300 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+              </svg>
+            </div>
+            <h2 class="text-3xl font-bold text-gray-900 mb-2">Welcome to <%= @course.title %></h2>
+            <p class="text-gray-600 mb-6 text-lg">Select a module step from the sidebar to start learning!</p>
+
+            <!-- Course Statistics -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-2xl mx-auto">
+              <div class="bg-violet-100 p-4 rounded-lg">
+                <div class="text-2xl font-bold text-violet-600"><%= @course_modules.count %></div>
+                <div class="text-violet-800 text-sm font-semibold">Modules</div>
+              </div>
+              <div class="bg-lime-100 p-4 rounded-lg">
+                <div class="text-2xl font-bold text-lime-600"><%= @course_modules.sum { |m| m.course_steps.count } %></div>
+                <div class="text-lime-800 text-sm font-semibold">Steps</div>
+              </div>
+              <div class="bg-purple-100 p-4 rounded-lg">
+                <div class="text-2xl font-bold text-purple-600"><%= @course_modules.sum { |m| m.course_steps.where(step_type: 'assessment').count } %></div>
+                <div class="text-purple-800 text-sm font-semibold">Quizzes</div>
+              </div>
+              <div class="bg-orange-100 p-4 rounded-lg">
+                <div class="text-2xl font-bold text-orange-600"><%= @course_modules.sum(&:total_duration_minutes) %></div>
+                <div class="text-orange-800 text-sm font-semibold">Minutes</div>
+              </div>
+            </div>
+
+            <!-- User Progress Display -->
+            <% if current_user && defined?(@progress_data) && @progress_data && @progress_data[:total_steps] > 0 %>
+              <div class="bg-gray-50 rounded-lg p-6 mt-8 max-w-2xl mx-auto">
+                <h3 class="text-lg font-bold text-gray-900 mb-4">Your Progress</h3>
+                <div class="flex justify-between text-sm text-gray-600 mb-2">
+                  <span>Course Completion</span>
+                  <span><%= @progress_data[:completed_steps] %>/<%= @progress_data[:total_steps] %> steps</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-3">
+                  <div class="bg-lime-500 h-3 rounded-full transition-all duration-500"
+                       style="width: <%= [@progress_data[:completion_percentage], 100].min %>%">
+                  </div>
+                </div>
+                <div class="grid grid-cols-3 gap-4 mt-4">
+                  <div class="text-center">
+                    <div class="text-xl font-bold text-lime-600"><%= @progress_data[:completed_steps] %></div>
+                    <div class="text-sm text-gray-600">Completed</div>
+                  </div>
+                  <div class="text-center">
+                    <div class="text-xl font-bold text-violet-600"><%= @progress_data[:in_progress_steps] %></div>
+                    <div class="text-sm text-gray-600">In Progress</div>
+                  </div>
+                  <div class="text-center">
+                    <div class="text-xl font-bold text-gray-600">
+                      <%= @progress_data[:total_steps] - @progress_data[:completed_steps] - @progress_data[:in_progress_steps] %>
+                    </div>
+                    <div class="text-sm text-gray-600">Not Started</div>
+                  </div>
                 </div>
               </div>
             <% end %>
           </div>
-        <% else %>
-          <div class="text-center py-12">
-            <div class="text-6xl mb-4">📚</div>
-            <h3 class="text-lg font-medium text-gray-900 mb-2">Course Content Coming Soon</h3>
-            <p class="text-gray-600">
-              This course is still being prepared. Check back soon for learning materials!
-            </p>
-          </div>
-        <% end %>
-      </div>
-    </div>
-
-    <!-- Progress Summary (if user has started) -->
-    <% if current_user && defined?(@progress_data) && @progress_data && @progress_data[:total_steps] > 0 %>
-      <div class="bg-white rounded-lg shadow-sm mt-6">
-        <div class="px-6 py-4 border-b bg-gray-50">
-          <h3 class="text-lg font-semibold text-gray-900">Your Progress</h3>
         </div>
 
-        <div class="p-6">
-          <!-- Progress Bar -->
-          <div class="mb-4">
-            <div class="flex justify-between text-sm text-gray-600 mb-2">
-              <span>Course Completion</span>
-              <span><%= @progress_data[:completed_steps] %>/<%= @progress_data[:total_steps] %> steps</span>
-            </div>
-            <div class="w-full bg-gray-200 rounded-full h-2">
-              <div class="bg-green-500 h-2 rounded-full transition-all duration-500"
-                   style="width: <%= [@progress_data[:completion_percentage], 100].min %>%">
-              </div>
+        <!-- Step Content Display -->
+        <div id="step-content" class="hidden" data-course-docs-target="stepContent">
+          <!-- Step Header -->
+          <div class="border-b border-gray-200 pb-4 mb-6" data-course-docs-target="stepHeader">
+            <nav class="flex text-sm text-gray-500 mb-2" data-course-docs-target="breadcrumbs">
+              <!-- Breadcrumbs will be inserted here -->
+            </nav>
+            <h1 class="text-3xl font-bold text-gray-900 mb-2" data-course-docs-target="stepTitle">
+              <!-- Step title will be inserted here -->
+            </h1>
+            <div class="flex items-center space-x-4 text-sm text-gray-600" data-course-docs-target="stepMeta">
+              <!-- Step metadata will be inserted here -->
             </div>
           </div>
 
-          <!-- Progress Stats -->
-          <div class="grid grid-cols-3 gap-4">
-            <div class="text-center">
-              <div class="text-2xl font-bold text-green-600"><%= @progress_data[:completed_steps] %></div>
-              <div class="text-sm text-gray-600">Completed</div>
-            </div>
-            <div class="text-center">
-              <div class="text-2xl font-bold text-blue-600"><%= @progress_data[:in_progress_steps] %></div>
-              <div class="text-sm text-gray-600">In Progress</div>
-            </div>
-            <div class="text-center">
-              <div class="text-2xl font-bold text-gray-600">
-                <%= @progress_data[:total_steps] - @progress_data[:completed_steps] - @progress_data[:in_progress_steps] %>
-              </div>
-              <div class="text-sm text-gray-600">Not Started</div>
-            </div>
+          <!-- WYSIWYG Content Area -->
+          <div class="prose prose-lg max-w-none" data-course-docs-target="stepBody">
+            <!-- Step content will be loaded here -->
+          </div>
+
+          <!-- Step Navigation -->
+          <div class="flex justify-between items-center mt-12 pt-6 border-t border-gray-200" data-course-docs-target="stepNavigation">
+            <button class="hidden flex items-center space-x-2 text-violet-600 hover:text-violet-800 font-semibold"
+                    data-action="click->course-docs#previousStep"
+                    data-course-docs-target="prevButton">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+              </svg>
+              <span>Previous</span>
+            </button>
+            <div></div>
+            <button class="hidden flex items-center space-x-2 text-violet-600 hover:text-violet-800 font-semibold"
+                    data-action="click->course-docs#nextStep"
+                    data-course-docs-target="nextButton">
+              <span>Next</span>
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+              </svg>
+            </button>
           </div>
         </div>
       </div>
-    <% end %>
+    </main>
+
+    <!-- Right Sidebar - AI Chat Assistant -->
+    <aside class="w-80 bg-violet-50 border-l border-gray-200 flex flex-col hidden"
+           data-course-docs-target="rightSidebar">
+
+      <!-- Chat Header -->
+      <div class="p-4 bg-white border-b border-gray-200">
+        <div class="flex items-center justify-between">
+          <h2 class="text-lg font-bold text-gray-900">AI Assistant</h2>
+          <button data-action="click->course-docs#toggleRightSidebar"
+                  class="text-gray-400 hover:text-gray-600">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+        <p class="text-sm text-gray-600 mt-1 font-medium">Ask questions about the course content</p>
+      </div>
+
+      <!-- Chat Messages -->
+      <div class="flex-1 overflow-y-auto p-4 space-y-4" data-course-docs-target="chatMessages">
+        <div class="bg-violet-100 border border-violet-200 rounded-lg p-3">
+          <div class="flex items-start space-x-2">
+            <div class="flex-shrink-0 w-6 h-6 bg-violet-500 text-white rounded-full flex items-center justify-center text-xs font-bold">
+              AI
+            </div>
+            <div class="flex-1 text-sm text-violet-800 font-medium">
+              Hello! I'm here to help you understand the course content. Ask me anything about the material!
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Chat Input -->
+      <div class="p-4 bg-white border-t border-gray-200">
+        <form data-action="submit->course-docs#sendChatMessage"
+              data-course-docs-target="chatForm">
+          <div class="flex space-x-2">
+            <input type="text"
+                   placeholder="Ask about this course..."
+                   data-course-docs-target="chatInput"
+                   class="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-violet-500 focus:border-violet-500">
+            <button type="submit"
+                    class="bg-lime-400 text-gray-800 px-4 py-2 rounded-lg hover:bg-lime-500 transition-colors font-semibold">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+              </svg>
+            </button>
+          </div>
+        </form>
+      </div>
+    </aside>
+
   </div>
 </div>
 
-<script>
-// Add smooth progress bar animation
-document.addEventListener('DOMContentLoaded', function() {
-  const progressBars = document.querySelectorAll('[style*="width:"]');
-  progressBars.forEach(bar => {
-    const finalWidth = bar.style.width;
-    bar.style.width = '0%';
-    setTimeout(() => {
-      bar.style.width = finalWidth;
-    }, 300);
-  });
-});
-</script>
+<!-- OnboardingAI Theme Styles -->
+<style>
+  .h-screen-minus-nav {
+    height: calc(100vh - 64px);
+  }
+
+  .prose {
+    line-height: 1.7;
+  }
+
+  .prose h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin-bottom: 1rem;
+    margin-top: 2rem;
+  }
+
+  .prose h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 0.75rem;
+    margin-top: 1.5rem;
+  }
+
+  .prose h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 0.5rem;
+    margin-top: 1rem;
+  }
+
+  .prose p {
+    margin-bottom: 1rem;
+    color: #374151;
+  }
+
+  .prose ul, .prose ol {
+    margin-bottom: 1rem;
+    padding-left: 1.5rem;
+  }
+
+  .prose li {
+    margin-bottom: 0.25rem;
+    color: #374151;
+  }
+
+  .prose code {
+    padding: 0.125rem 0.25rem;
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+    color: #d97706;
+  }
+
+  .prose pre {
+    background-color: #1f2937;
+    color: #f9fafb;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    overflow-x: auto;
+    margin: 1rem 0;
+  }
+
+  .prose blockquote {
+    border-left: 4px solid #8b5cf6;
+    padding-left: 1rem;
+    margin: 1rem 0;
+    color: #6b7280;
+    font-style: italic;
+  }
+
+  .prose table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+  }
+
+  .prose th, .prose td {
+    border: 1px solid #d1d5db;
+    padding: 0.5rem;
+    text-align: left;
+  }
+
+  .prose th {
+    background-color: #f9fafb;
+    font-weight: 600;
+  }
+</style>
