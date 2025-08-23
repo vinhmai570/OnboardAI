@@ -32,5 +32,5 @@
     <% end %>
   <% end %>
 <% else %>
-  <%= render 'welcome_message' %>
+  <%= render 'welcome_message', conversation: defined?(@current_conversation) ? @current_conversation : nil %>
 <% end %>

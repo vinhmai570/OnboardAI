@@ -14,7 +14,11 @@ class Admin::CourseGeneratorController < ApplicationController
       Conversation.find_by(user_id: current_user_id, session_id: session_id)
     end
 
-    @chat_messages = @current_conversation&.chat_messages&.where.not(message_type: 'ai_detailed')&.chronological || []
+    @chat_messages = if @current_conversation
+      @current_conversation.chat_messages.where.not(message_type: 'ai_detailed').chronological
+    else
+      []
+    end
     @conversations = Conversation.where(user_id: current_user_id).recent.limit(10)
   end
 
@@ -87,22 +91,39 @@ class Admin::CourseGeneratorController < ApplicationController
       Conversation.find_by(user_id: current_user_id, session_id: session_id)
     end
 
+    unless conversation
+      Rails.logger.error "No conversation found for course generation"
+      redirect_to admin_course_generator_index_path, alert: "No conversation found. Please start a new conversation."
+      return
+    end
+
     # Extract all document references from conversation messages
     mentioned_document_ids = []
-    if conversation
-      conversation.chat_messages.where(message_type: 'user_prompt').each do |message|
-        mentioned_document_ids += extract_document_mentions(message.content)
-      end
+    conversation.chat_messages.where(message_type: 'user_prompt').each do |message|
+      mentioned_document_ids += extract_document_mentions(message.content)
     end
     mentioned_document_ids = mentioned_document_ids.uniq
 
     Rails.logger.info "Found #{mentioned_document_ids.length} referenced documents for structure generation"
 
-    # Start structure generation job with document references
-    GenerateDetailedCourseJob.perform_later(session_id, mentioned_document_ids)
+    # Create Course record immediately and link to conversation
+    course_title = generate_course_title(conversation)
+    course_prompt = extract_course_prompt(conversation)
 
-    # Redirect to structure page with session ID
-    redirect_to show_structure_admin_course_generator_index_path(session_id: session_id)
+    course = Course.create!(
+      title: course_title,
+      prompt: course_prompt,
+      admin_id: current_user_id,
+      conversation: conversation
+    )
+
+    Rails.logger.info "Created course #{course.id} linked to conversation #{conversation.id}"
+
+    # Start structure generation job with course ID
+    GenerateDetailedCourseJob.perform_later(session_id, mentioned_document_ids, course.id)
+
+    # Redirect directly to the course structure page
+    redirect_to show_structure_admin_course_generator_index_path(course_id: course.id)
   end
 
     def show_structure
@@ -122,11 +143,10 @@ class Admin::CourseGeneratorController < ApplicationController
     if @course_id
       @course = Course.includes(course_modules: :course_steps).find_by(id: @course_id)
     elsif @conversation
-      # Find the latest course created from this conversation
-      @course = Course.where(prompt: "Generated from conversation #{@conversation.id}")
-                     .includes(course_modules: :course_steps)
-                     .order(created_at: :desc)
-                     .first
+      # Find the latest course created from this conversation using the proper relationship
+      @course = @conversation.courses.includes(course_modules: :course_steps)
+                              .order(created_at: :desc)
+                              .first
     end
 
     if @course
@@ -157,18 +177,30 @@ class Admin::CourseGeneratorController < ApplicationController
   end
 
   def new_conversation
-    Rails.logger.info "Starting new conversation"
-
-    # Clear only the conversation-related session data, keep user authentication
-    session.delete(:conversation_id)
+    Rails.logger.info "Creating new conversation"
 
     current_user_id = session[:user_id]
+    session_id = session.id.to_s
+
+    # Create a new conversation immediately
+    @conversation = Conversation.create!(
+      user_id: current_user_id,
+      session_id: session_id,
+      title: "New Conversation #{Time.current.strftime('%m/%d %H:%M')}"
+    )
+
+    # Set the new conversation as current
+    session[:conversation_id] = @conversation.id
+
+    # Reload conversations list for sidebar
     @conversations = Conversation.where(user_id: current_user_id).recent.limit(10)
+
+    Rails.logger.info "Created conversation #{@conversation.id}: '#{@conversation.title}'"
 
     respond_to do |format|
       format.turbo_stream do
         render turbo_stream: [
-          turbo_stream.update("chat-messages", partial: "welcome_message"),
+          turbo_stream.update("chat-messages", partial: "welcome_message", locals: { conversation: @conversation }),
           turbo_stream.update("conversation-list", partial: "conversation_list", locals: { conversations: @conversations })
         ]
       end
@@ -224,14 +256,16 @@ class Admin::CourseGeneratorController < ApplicationController
   end
 
     def find_or_create_conversation(prompt)
-    # Look for existing conversation in this session
+    # Use same logic as index action to find current conversation
     current_user_id = session[:user_id]
     session_id = session.id.to_s
 
-    conversation = Conversation.find_by(
-      user_id: current_user_id,
-      session_id: session_id
-    )
+    # Try to find by session conversation_id first, then by session_id
+    conversation = if session[:conversation_id]
+      Conversation.find_by(id: session[:conversation_id], user_id: current_user_id)
+    else
+      Conversation.find_by(user_id: current_user_id, session_id: session_id)
+    end
 
     unless conversation
       # Create new conversation
@@ -244,6 +278,9 @@ class Admin::CourseGeneratorController < ApplicationController
         session_id: session_id,
         title: title
       )
+
+      # Set the new conversation as current
+      session[:conversation_id] = conversation.id
 
       Rails.logger.info "Created new conversation: #{conversation.id} - '#{conversation.title}'"
     end
@@ -271,5 +308,28 @@ class Admin::CourseGeneratorController < ApplicationController
     end
 
     document_ids.uniq
+  end
+
+  def generate_course_title(conversation)
+    # Use conversation title or generate from first prompt
+    if conversation.title && !conversation.title.include?("Course Generation")
+      return conversation.title
+    end
+
+    # Get first user prompt from conversation
+    first_prompt = conversation.chat_messages.where(message_type: 'user_prompt').first&.content
+    if first_prompt
+      # Clean up prompt for title (remove document mentions, truncate)
+      title = first_prompt.gsub(/@\w+/, '').strip.truncate(50, omission: '...')
+      return title.present? ? title : "Course from Conversation"
+    end
+
+    "Course from Conversation"
+  end
+
+  def extract_course_prompt(conversation)
+    # Combine all user prompts to form the course prompt
+    prompts = conversation.chat_messages.where(message_type: 'user_prompt').pluck(:content)
+    prompts.join("\n\n").presence || "Generate a course structure"
   end
 end

@@ -1,5 +1,6 @@
 class Course < ApplicationRecord
   belongs_to :admin, class_name: "User"
+  belongs_to :conversation, optional: true
   has_many :steps, dependent: :destroy
   has_many :progresses, dependent: :destroy
   has_many :users, through: :progresses

@@ -1,7 +1,7 @@
 class GenerateDetailedCourseJob < ApplicationJob
   queue_as :default
 
-  def perform(session_id, mentioned_document_ids = [])
+  def perform(session_id, mentioned_document_ids = [], course_id = nil)
     Rails.logger.info "Starting course structure generation for session: #{session_id}"
     Rails.logger.info "Using #{mentioned_document_ids.length} referenced documents"
 
@@ -24,7 +24,7 @@ class GenerateDetailedCourseJob < ApplicationJob
 
       if json_response
         # Parse and store the structured course data
-        course_structure = parse_and_store_course_structure(json_response)
+        course_structure = parse_and_store_course_structure(json_response, course_id)
 
         if course_structure
           Rails.logger.info "Successfully created course structure with ID: #{course_structure[:course_id]}"
@@ -129,24 +129,32 @@ class GenerateDetailedCourseJob < ApplicationJob
     nil
   end
 
-  def parse_and_store_course_structure(json_response)
+  def parse_and_store_course_structure(json_response, course_id = nil)
     begin
       # Parse JSON response
       structure_data = JSON.parse(json_response)
 
-      # Get the user who requested the course structure
-      current_user = @conversation&.user
-      return nil unless current_user
+      # Use existing course or create new one (fallback for backward compatibility)
+      if course_id
+        course = Course.find(course_id)
+        Rails.logger.info "Using existing course #{course.id}: '#{course.title}'"
 
-      # Create course record with structured data (keep JSON for backward compatibility)
-      course = Course.create!(
-        title: structure_data['title'] || 'Generated Course',
-        prompt: "Generated from conversation #{@conversation.id}",
-        structure: structure_data,
-        admin: current_user
-      )
+        # Update course with structured data
+        course.update!(structure: structure_data)
+      else
+        # Fallback: Create new course (for backward compatibility)
+        current_user = @conversation&.user
+        return nil unless current_user
 
-      Rails.logger.info "Created course #{course.id}: '#{course.title}'"
+        course = Course.create!(
+          title: structure_data['title'] || 'Generated Course',
+          prompt: "Generated from conversation #{@conversation.id}",
+          structure: structure_data,
+          admin: current_user,
+          conversation: @conversation
+        )
+        Rails.logger.info "Created new course #{course.id}: '#{course.title}'"
+      end
 
       # Create CourseModule and CourseStep records from JSON data
       structure_data['modules']&.each_with_index do |module_data, module_index|

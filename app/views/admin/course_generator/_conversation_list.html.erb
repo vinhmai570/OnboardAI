@@ -18,9 +18,16 @@
         <% end %>
         <div class="p-2 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer text-xs conversation-item <%= 'bg-blue-50 border-blue-200' if defined?(@current_conversation) && @current_conversation == conversation %>"
              data-conversation-id="<%= conversation.id %>" onclick="switchConversation(<%= conversation.id %>)">
-          <div class="font-medium text-gray-900 truncate"><%= conversation.title %></div>
-          <div class="text-gray-500 mt-1">
-            <%= conversation.message_count %> messages • <%= time_ago_in_words(conversation.last_message_at) %> ago
+          <div class="flex items-center justify-between mb-1">
+            <span class="text-blue-600 font-mono text-xs">#<%= conversation.id %></span>
+            <span class="text-gray-400 text-xs"><%= time_ago_in_words(conversation.last_message_at) %> ago</span>
+          </div>
+          <div class="font-medium text-gray-900 truncate mb-1"><%= conversation.title %></div>
+          <div class="text-gray-500">
+            <%= conversation.message_count %> messages
+            <% if conversation.courses.any? %>
+              • <%= conversation.courses.count %> course<%= 's' if conversation.courses.count != 1 %>
+            <% end %>
           </div>
         </div>
       <% end %>

@@ -1,6 +1,7 @@
 class Conversation < ApplicationRecord
   belongs_to :user
   has_many :chat_messages, dependent: :destroy
+  has_many :courses, dependent: :destroy
 
   validates :title, presence: true
   validates :session_id, presence: true
