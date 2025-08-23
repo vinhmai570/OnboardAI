@@ -8,6 +8,16 @@ gem "propshaft"
 gem "pg", "~> 1.1"
 # Add vector similarity search capabilities with pgvector
 gem "pgvector"
+gem "neighbor"
+
+# AI and document processing
+gem "ruby-openai"
+gem "pdf-reader"
+gem "docx"
+gem "image_processing", "~> 1.2"
+
+# Authentication
+gem "bcrypt", "~> 3.1.7"
 # Use the Puma web server [https://github.com/puma/puma]
 gem "puma", ">= 5.0"
 # Bundle and transpile JavaScript [https://github.com/rails/jsbundling-rails]

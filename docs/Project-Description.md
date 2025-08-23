@@ -23,7 +23,7 @@ Create an intuitive platform, OnboardAI, to simplify and personalize the onboard
    - **Step 2: Generate Detailed Course**
      - After reviewing the task list, admins click "Generate Details" to create the final course with detailed content and quizzes for each step.
      - Course displayed in a developer-friendly, documentation-style UI with a sidebar listing steps.
-     - Admins can edit step content post-generation in a Markdown-like editor.
+     - Admins can edit step content post-generation in a Markdown-like editor / or by chat bot in the right sidebar
    - *Implementation*: Rails backend with OpenAI for content generation, Hotwired for dynamic UI, Tailwind for styling.
 
 3. **Interactive Course Interface**

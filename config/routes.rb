@@ -1,14 +1,70 @@
 Rails.application.routes.draw do
-  # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
+  get "chat/create"
+  get "courses/index"
+  get "courses/show"
+  get "courses/enroll"
+  get "courses/complete_step"
+  # Authentication routes
+  resources :sessions, only: [:new, :create, :destroy]
+  get '/login', to: 'sessions#new'
+  delete '/logout', to: 'sessions#destroy'
 
-  # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.
-  # Can be used by load balancers and uptime monitors to verify that the app is live.
+  # Root route - redirect to appropriate dashboard
+  root 'dashboard#index'
+
+  # User dashboard
+  get 'dashboard', to: 'dashboard#index'
+  get 'dashboard/index'
+
+  # Admin routes
+  namespace :admin do
+    get "courses/index"
+    get "courses/new"
+    get "courses/create"
+    get "courses/show"
+    get "courses/edit"
+    get "courses/update"
+    get "courses/destroy"
+    get "courses/generate_tasks"
+    get "courses/generate_details"
+    get "courses/publish"
+    get "users/index"
+    get "users/new"
+    get "users/create"
+    get "users/edit"
+    get "users/update"
+    get "users/destroy"
+    get 'dashboard', to: 'dashboard#index'
+    get 'dashboard/index'
+
+    resources :users, except: [:show]
+    resources :documents do
+      member do
+        post :process_document
+      end
+    end
+    resources :courses do
+      member do
+        post :generate_tasks
+        post :generate_details
+        patch :publish
+      end
+      resources :steps, except: [:index, :show]
+    end
+  end
+
+  # User-facing course routes
+  resources :courses, only: [:index, :show] do
+    member do
+      post :enroll
+      patch :complete_step
+    end
+    resources :steps, only: [:show]
+  end
+
+  # Chat API
+  post '/chat', to: 'chat#create'
+
+  # Health check
   get "up" => "rails/health#show", as: :rails_health_check
-
-  # Render dynamic PWA files from app/views/pwa/* (remember to link manifest in application.html.erb)
-  # get "manifest" => "rails/pwa#manifest", as: :pwa_manifest
-  # get "service-worker" => "rails/pwa#service_worker", as: :pwa_service_worker
-
-  # Defines the root path route ("/")
-  # root "posts#index"
 end

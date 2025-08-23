@@ -1,0 +1,84 @@
+<div class="min-h-screen bg-gray-50">
+  <nav class="bg-white shadow">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between h-16">
+        <div class="flex">
+          <div class="flex-shrink-0 flex items-center">
+            <h1 class="text-2xl font-bold text-gray-900">OnboardAI</h1>
+          </div>
+        </div>
+        <div class="flex items-center space-x-4">
+          <span class="text-gray-700">Welcome, <%= current_user.email %></span>
+          <% if admin? %>
+            <%= link_to "Admin Dashboard", admin_dashboard_path, class: "text-indigo-600 hover:text-indigo-900" %>
+          <% end %>
+          <%= link_to "Logout", logout_path, method: :delete, class: "text-red-600 hover:text-red-900" %>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+    <div class="px-4 py-6 sm:px-0">
+      <div class="mb-8">
+        <h2 class="text-3xl font-bold text-gray-900">Your Learning Dashboard</h2>
+        <p class="mt-2 text-gray-600">Track your progress and continue your onboarding journey.</p>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- Enrolled Courses -->
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+          <div class="px-4 py-5 sm:p-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Your Courses</h3>
+            <% if @enrolled_courses.any? %>
+              <div class="space-y-4">
+                <% @enrolled_courses.each do |progress| %>
+                  <div class="border border-gray-200 rounded-lg p-4">
+                    <div class="flex justify-between items-start">
+                      <div>
+                        <h4 class="text-lg font-medium text-gray-900"><%= progress.course.title %></h4>
+                        <p class="text-sm text-gray-600 mt-1">Progress: <%= progress.completion_percentage %>%</p>
+                      </div>
+                      <%= link_to "Continue", course_path(progress.course), class: "inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" %>
+                    </div>
+                    <div class="mt-2">
+                      <div class="w-full bg-gray-200 rounded-full h-2">
+                        <div class="bg-indigo-600 h-2 rounded-full" style="width: <%= progress.completion_percentage %>%"></div>
+                      </div>
+                    </div>
+                  </div>
+                <% end %>
+              </div>
+            <% else %>
+              <p class="text-gray-500">You haven't enrolled in any courses yet.</p>
+            <% end %>
+          </div>
+        </div>
+
+        <!-- Available Courses -->
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+          <div class="px-4 py-5 sm:p-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Available Courses</h3>
+            <% if @available_courses.any? %>
+              <div class="space-y-4">
+                <% @available_courses.each do |course| %>
+                  <div class="border border-gray-200 rounded-lg p-4">
+                    <div class="flex justify-between items-start">
+                      <div>
+                        <h4 class="text-lg font-medium text-gray-900"><%= course.title %></h4>
+                        <p class="text-sm text-gray-600 mt-1"><%= course.steps.count %> steps</p>
+                      </div>
+                      <%= link_to "Enroll", course_path(course), method: :post, class: "inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" %>
+                    </div>
+                  </div>
+                <% end %>
+              </div>
+            <% else %>
+              <p class="text-gray-500">No new courses available at the moment.</p>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

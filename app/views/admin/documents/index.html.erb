@@ -1,0 +1,77 @@
+<div class="min-h-screen bg-gray-50">
+  <nav class="bg-white shadow">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between h-16">
+        <div class="flex">
+          <div class="flex-shrink-0 flex items-center">
+            <h1 class="text-2xl font-bold text-gray-900">OnboardAI Admin</h1>
+          </div>
+        </div>
+        <div class="flex items-center space-x-4">
+          <%= link_to "Dashboard", admin_dashboard_path, class: "text-indigo-600 hover:text-indigo-900" %>
+          <%= link_to "Logout", logout_path, method: :delete, class: "text-red-600 hover:text-red-900" %>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+    <div class="px-4 py-6 sm:px-0">
+      <div class="mb-8">
+        <h2 class="text-3xl font-bold text-gray-900">Documents</h2>
+        <p class="mt-2 text-gray-600">Manage documents for AI processing and course creation.</p>
+      </div>
+
+      <div class="mb-6">
+        <%= link_to "Upload Document", new_admin_document_path, class: "inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700" %>
+      </div>
+
+      <div class="bg-white shadow overflow-hidden sm:rounded-md">
+        <% if @documents.any? %>
+          <ul class="divide-y divide-gray-200">
+            <% @documents.each do |document| %>
+              <li>
+                <div class="px-4 py-4 flex items-center justify-between">
+                  <div class="flex items-center">
+                    <div>
+                      <div class="text-sm font-medium text-gray-900">
+                        <%= document.title %>
+                      </div>
+                      <div class="text-sm text-gray-500">
+                        Uploaded by <%= document.user.email %> • <%= time_ago_in_words(document.created_at) %> ago
+                      </div>
+                    </div>
+                  </div>
+                  <div class="flex items-center space-x-2">
+                    <% if document.document_chunks.any? %>
+                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        <%= document.document_chunks.count %> chunks
+                      </span>
+                    <% else %>
+                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                        Processing...
+                      </span>
+                    <% end %>
+                    <%= link_to "Process", process_document_admin_document_path(document), method: :post, class: "text-indigo-600 hover:text-indigo-900 text-sm" %>
+                    <%= link_to "Delete", admin_document_path(document), method: :delete, data: { confirm: "Are you sure?" }, class: "text-red-600 hover:text-red-900 text-sm" %>
+                  </div>
+                </div>
+              </li>
+            <% end %>
+          </ul>
+        <% else %>
+          <div class="text-center py-12">
+            <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+              <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            <h3 class="mt-2 text-sm font-medium text-gray-900">No documents</h3>
+            <p class="mt-1 text-sm text-gray-500">Get started by uploading your first document.</p>
+            <div class="mt-6">
+              <%= link_to "Upload Document", new_admin_document_path, class: "inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700" %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>

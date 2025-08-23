@@ -1,0 +1,13 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  user: one
+  course: one
+  completed_steps: 1
+  quiz_scores: 
+
+two:
+  user: two
+  course: two
+  completed_steps: 1
+  quiz_scores: 
