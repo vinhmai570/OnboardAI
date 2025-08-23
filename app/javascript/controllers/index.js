@@ -9,3 +9,6 @@ application.register("course-structure", CourseStructureController)
 
 import HelloController from "./hello_controller"
 application.register("hello", HelloController)
+
+import CourseDocsController from "./course_docs_controller"
+application.register("course-docs", CourseDocsController)

@@ -43,7 +43,14 @@ Rails.application.routes.draw do
         post :new_conversation
         post :switch_conversation
         get :search_documents
-      end
+        end
+        member do
+          post :generate_full_course
+          get :show_full_course
+        end
+        collection do
+          get 'step_content/:id', to: 'course_generator#step_content', as: 'step_content'
+        end
     end
     get "courses/index"
     get "courses/new"

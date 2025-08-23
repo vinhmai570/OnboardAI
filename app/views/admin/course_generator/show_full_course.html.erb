@@ -1,0 +1,350 @@
+<%= turbo_stream_from "full_course_generator_#{@course.id}" %>
+
+<div class="min-h-screen bg-white"
+     data-controller="course-docs"
+     data-course-docs-course-id-value="<%= @course.id %>">
+
+  <!-- Top Navigation -->
+  <nav class="bg-white border-b border-gray-200 px-4 py-3 sticky top-0 z-30">
+    <div class="flex items-center justify-between max-w-7xl mx-auto">
+      <div class="flex items-center space-x-4">
+        <%= link_to show_structure_admin_course_generator_index_path(course_id: @course.id), class: "text-blue-600 hover:text-blue-800" do %>
+          <svg class="w-5 h-5 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+          </svg>
+          Back to Structure
+        <% end %>
+        <h1 class="text-xl font-semibold text-gray-900"><%= @course.title %></h1>
+        <span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">
+          <%= @course.full_content_generated? ? '✅ Complete' : '⏳ Generating' %>
+        </span>
+      </div>
+      <div class="flex items-center space-x-4">
+        <button data-action="click->course-docs#toggleLeftSidebar"
+                class="lg:hidden p-2 text-gray-600 hover:text-gray-900">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+          </svg>
+        </button>
+        <button data-action="click->course-docs#toggleRightSidebar"
+                class="p-2 text-gray-600 hover:text-gray-900" title="AI Assistant">
+          💬
+        </button>
+        <%= link_to "Dashboard", admin_dashboard_path, class: "text-gray-600 hover:text-gray-900" %>
+        <%= link_to "Logout", logout_path, method: :delete, class: "text-red-600 hover:text-red-900" %>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Three Column Layout -->
+  <div class="flex h-screen-minus-nav">
+
+    <!-- Left Sidebar - Module Navigation -->
+    <aside class="w-80 lg:w-96 bg-gray-50 border-r border-gray-200 overflow-y-auto flex-shrink-0"
+           data-course-docs-target="leftSidebar">
+      <div class="p-4 lg:p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-6">Course Modules</h2>
+
+        <% if flash[:notice] %>
+          <!-- Show generation message in sidebar -->
+          <div id="full-course-loading" class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+            <div class="flex items-center space-x-2 mb-2">
+              <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+              <span class="text-sm font-medium text-blue-900">Generating Content...</span>
+            </div>
+            <p class="text-xs text-blue-700"><%= flash[:notice] %></p>
+          </div>
+        <% end %>
+
+        <nav class="space-y-2" data-course-docs-target="moduleNav">
+          <% @course_modules.each_with_index do |course_module, module_index| %>
+            <div class="module-group">
+              <!-- Module Header -->
+              <button class="w-full flex items-start justify-between p-4 text-left bg-white rounded-lg border hover:bg-gray-50 transition-colors shadow-sm"
+                      data-action="click->course-docs#toggleModule"
+                      data-module-id="<%= course_module.id %>"
+                      data-course-docs-target="moduleToggle">
+                <div class="flex items-start space-x-3 flex-1 min-w-0">
+                  <span class="flex-shrink-0 w-7 h-7 bg-blue-100 text-blue-800 rounded-full flex items-center justify-center text-xs font-semibold mt-0.5">
+                    <%= module_index + 1 %>
+                  </span>
+                  <div class="flex-1 min-w-0">
+                    <div class="text-sm font-semibold text-gray-900 leading-5 break-words pr-2"><%= course_module.title %></div>
+                    <div class="text-xs text-gray-500 mt-1 flex items-center flex-wrap gap-1">
+                      <span class="bg-gray-100 px-2 py-0.5 rounded-full"><%= course_module.course_steps.count %> steps</span>
+                      <span class="bg-gray-100 px-2 py-0.5 rounded-full"><%= course_module.total_duration_minutes %> min</span>
+                    </div>
+                  </div>
+                </div>
+                <svg class="w-4 h-4 text-gray-400 transform transition-transform duration-200 flex-shrink-0 mt-1"
+                     data-course-docs-target="moduleIcon"
+                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                </svg>
+              </button>
+
+              <!-- Module Steps (Hidden by default) -->
+              <div class="hidden mt-3 ml-8 space-y-2"
+                   data-course-docs-target="moduleSteps"
+                   data-module-id="<%= course_module.id %>">
+                <% course_module.course_steps.ordered.each_with_index do |step, step_index| %>
+                  <button class="w-full text-left p-3 text-sm text-gray-700 hover:bg-white hover:text-gray-900 hover:shadow-sm rounded-lg transition-all flex items-start space-x-3 border border-transparent hover:border-gray-200"
+                          data-action="click->course-docs#selectStep"
+                          data-step-id="<%= step.id %>"
+                          data-module-id="<%= course_module.id %>"
+                          data-step-title="<%= step.title.gsub('"', '&quot;') %>"
+                          data-step-type="<%= step.step_type %>"
+                          data-step-content="<%= step.content&.gsub('"', '&quot;') || '' %>"
+                          data-step-detailed-content="<%= step.detailed_content&.gsub('"', '&quot;') || '' %>"
+                          data-step-duration="<%= step.duration_minutes %>"
+                          data-step-generated="<%= step.content_generated? %>"
+                          data-module-title="<%= course_module.title.gsub('"', '&quot;') %>"
+                          data-course-docs-target="stepButton">
+                    <span class="text-lg flex-shrink-0"><%= step.icon %></span>
+                    <div class="flex-1 min-w-0">
+                      <div class="font-medium text-gray-900 leading-5 break-words pr-1"><%= step.title %></div>
+                      <div class="text-xs text-gray-500 mt-1 flex items-center flex-wrap gap-1">
+                        <span class="bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full font-medium"><%= step.step_type.humanize %></span>
+                        <span class="bg-gray-100 px-2 py-0.5 rounded-full"><%= step.duration_minutes %> min</span>
+                        <% if step.content_generated? %>
+                          <span class="bg-green-50 text-green-700 px-2 py-0.5 rounded-full font-medium">✓ Ready</span>
+                        <% else %>
+                          <span class="bg-yellow-50 text-yellow-700 px-2 py-0.5 rounded-full font-medium">⏳ Pending</span>
+                        <% end %>
+                      </div>
+                    </div>
+                  </button>
+                <% end %>
+              </div>
+            </div>
+          <% end %>
+        </nav>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 overflow-y-auto bg-white" data-course-docs-target="mainContent">
+      <div class="max-w-4xl mx-auto px-8 py-6">
+
+        <!-- Welcome State (No Step Selected) -->
+        <div id="welcome-state" data-course-docs-target="welcomeState">
+          <div class="text-center py-16">
+            <div class="mb-6">
+              <svg class="w-16 h-16 text-gray-300 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+              </svg>
+            </div>
+            <h2 class="text-2xl font-semibold text-gray-900 mb-2">Welcome to <%= @course.title %></h2>
+            <p class="text-gray-600 mb-6">Select a module step from the left sidebar to view detailed content.</p>
+
+            <!-- Course Statistics -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-2xl mx-auto">
+              <div class="bg-blue-50 p-4 rounded-lg">
+                <div class="text-2xl font-bold text-blue-600"><%= @course_modules.count %></div>
+                <div class="text-blue-800 text-sm">Modules</div>
+              </div>
+              <div class="bg-green-50 p-4 rounded-lg">
+                <div class="text-2xl font-bold text-green-600"><%= @course_modules.sum { |m| m.course_steps.count } %></div>
+                <div class="text-green-800 text-sm">Steps</div>
+              </div>
+              <div class="bg-purple-50 p-4 rounded-lg">
+                <div class="text-2xl font-bold text-purple-600"><%= @course_modules.sum { |m| m.course_steps.where(step_type: 'assessment').count } %></div>
+                <div class="text-purple-800 text-sm">Quizzes</div>
+              </div>
+              <div class="bg-orange-50 p-4 rounded-lg">
+                <div class="text-2xl font-bold text-orange-600"><%= @course_modules.sum(&:total_duration_minutes) %></div>
+                <div class="text-orange-800 text-sm">Minutes</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step Content Display -->
+        <div id="step-content" class="hidden" data-course-docs-target="stepContent">
+          <!-- Step Header -->
+          <div class="border-b border-gray-200 pb-4 mb-6" data-course-docs-target="stepHeader">
+            <nav class="flex text-sm text-gray-500 mb-2" data-course-docs-target="breadcrumbs">
+              <!-- Breadcrumbs will be inserted here -->
+            </nav>
+            <h1 class="text-3xl font-bold text-gray-900 mb-2" data-course-docs-target="stepTitle">
+              <!-- Step title will be inserted here -->
+            </h1>
+            <div class="flex items-center space-x-4 text-sm text-gray-600" data-course-docs-target="stepMeta">
+              <!-- Step metadata will be inserted here -->
+            </div>
+          </div>
+
+          <!-- WYSIWYG Content Area -->
+          <div class="prose prose-lg max-w-none" data-course-docs-target="stepBody">
+            <!-- Step content will be loaded here -->
+          </div>
+
+          <!-- Step Navigation -->
+          <div class="flex justify-between items-center mt-12 pt-6 border-t border-gray-200" data-course-docs-target="stepNavigation">
+            <button class="hidden flex items-center space-x-2 text-blue-600 hover:text-blue-800"
+                    data-action="click->course-docs#previousStep"
+                    data-course-docs-target="prevButton">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+              </svg>
+              <span>Previous</span>
+            </button>
+            <div></div>
+            <button class="hidden flex items-center space-x-2 text-blue-600 hover:text-blue-800"
+                    data-action="click->course-docs#nextStep"
+                    data-course-docs-target="nextButton">
+              <span>Next</span>
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Right Sidebar - AI Chat Assistant -->
+    <aside class="w-80 bg-gray-50 border-l border-gray-200 flex flex-col hidden"
+           data-course-docs-target="rightSidebar">
+
+      <!-- Chat Header -->
+      <div class="p-4 bg-white border-b border-gray-200">
+        <div class="flex items-center justify-between">
+          <h2 class="text-lg font-semibold text-gray-900">AI Assistant</h2>
+          <button data-action="click->course-docs#toggleRightSidebar"
+                  class="text-gray-400 hover:text-gray-600">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+        <p class="text-sm text-gray-600 mt-1">Ask questions about the course content</p>
+      </div>
+
+      <!-- Chat Messages -->
+      <div class="flex-1 overflow-y-auto p-4 space-y-4" data-course-docs-target="chatMessages">
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+          <div class="flex items-start space-x-2">
+            <div class="flex-shrink-0 w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-medium">
+              AI
+            </div>
+            <div class="flex-1 text-sm text-blue-800">
+              Hello! I'm here to help you understand the course content. You can ask me questions about any step or concept in the course.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Chat Input -->
+      <div class="p-4 bg-white border-t border-gray-200">
+        <form data-action="submit->course-docs#sendChatMessage"
+              data-course-docs-target="chatForm">
+          <div class="flex space-x-2">
+            <input type="text"
+                   placeholder="Ask about this course..."
+                   data-course-docs-target="chatInput"
+                   class="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+            <button type="submit"
+                    class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+              </svg>
+            </button>
+          </div>
+        </form>
+      </div>
+    </aside>
+
+  </div>
+</div>
+
+<!-- Custom Styles for GitHub Docs-like layout -->
+<style>
+  .h-screen-minus-nav {
+    height: calc(100vh - 64px);
+  }
+
+  .prose {
+    line-height: 1.7;
+  }
+
+  .prose h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin-bottom: 1rem;
+    margin-top: 2rem;
+  }
+
+  .prose h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 0.75rem;
+    margin-top: 1.5rem;
+  }
+
+  .prose h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 0.5rem;
+    margin-top: 1rem;
+  }
+
+  .prose p {
+    margin-bottom: 1rem;
+    color: #374151;
+  }
+
+  .prose ul, .prose ol {
+    margin-bottom: 1rem;
+    padding-left: 1.5rem;
+  }
+
+  .prose li {
+    margin-bottom: 0.25rem;
+    color: #374151;
+  }
+
+  .prose code {
+    padding: 0.125rem 0.25rem;
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+    color: #d97706;
+  }
+
+  .prose pre {
+    background-color: #1f2937;
+    color: #f9fafb;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    overflow-x: auto;
+    margin: 1rem 0;
+  }
+
+  .prose blockquote {
+    border-left: 4px solid #3b82f6;
+    padding-left: 1rem;
+    margin: 1rem 0;
+    color: #6b7280;
+    font-style: italic;
+  }
+
+  .prose table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+  }
+
+  .prose th, .prose td {
+    border: 1px solid #d1d5db;
+    padding: 0.5rem;
+    text-align: left;
+  }
+
+  .prose th {
+    background-color: #f9fafb;
+    font-weight: 600;
+  }
+</style>

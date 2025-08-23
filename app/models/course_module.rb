@@ -18,6 +18,10 @@ class CourseModule < ApplicationRecord
     course_steps.sum(:duration_minutes)
   end
 
+  def duration_minutes
+    (duration_hours * 60).to_i
+  end
+
   def move_up
     return false if order_position <= 1
 

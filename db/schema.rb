@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_08_23_073427) do
+ActiveRecord::Schema[8.0].define(version: 2025_08_23_083033) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "vector"
@@ -71,6 +71,8 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_23_073427) do
     t.integer "order_position"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.text "detailed_description"
+    t.boolean "content_generated"
     t.index ["course_id"], name: "index_course_modules_on_course_id"
   end
 
@@ -84,6 +86,8 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_23_073427) do
     t.text "resources"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.text "detailed_content"
+    t.boolean "content_generated"
     t.index ["course_module_id"], name: "index_course_steps_on_course_module_id"
   end
 
@@ -96,6 +100,8 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_23_073427) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.bigint "conversation_id", null: false
+    t.boolean "full_content_generated"
+    t.datetime "full_content_generated_at"
     t.index ["admin_id"], name: "index_courses_on_admin_id"
     t.index ["conversation_id"], name: "index_courses_on_conversation_id"
   end

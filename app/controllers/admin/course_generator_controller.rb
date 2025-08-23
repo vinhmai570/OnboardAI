@@ -129,9 +129,35 @@ class Admin::CourseGeneratorController < ApplicationController
     # Start structure generation job with course ID and conversation context
     GenerateDetailedCourseJob.perform_later(session_id, mentioned_document_ids, course.id, conversation.id)
 
-        # For now, just redirect to the structure page with loading message
+            # For now, just redirect to the structure page with loading message
     redirect_to show_structure_admin_course_generator_index_path(course_id: course.id),
                 notice: "Course structure generation started. Please wait while we create your course structure..."
+  end
+
+  def generate_full_course
+    Rails.logger.info "Full course generation requested"
+
+    @course = Course.find(params[:id])
+    unless @course
+      redirect_to admin_course_generator_index_path, alert: "Course not found."
+      return
+    end
+
+    # Start full course content generation job
+    GenerateFullCourseJob.perform_later(@course.id)
+
+    redirect_to show_full_course_admin_course_generator_path(@course.id),
+                notice: "Full course content generation started. Please wait while we create detailed content and quizzes..."
+  end
+
+  def show_full_course
+    @course = Course.find(params[:id])
+    @course_modules = @course.course_modules.includes(:course_steps).ordered
+
+    unless @course
+      redirect_to admin_course_generator_index_path, alert: "Course not found."
+      return
+    end
   end
 
     def show_structure
@@ -339,5 +365,22 @@ class Admin::CourseGeneratorController < ApplicationController
     # Combine all user prompts to form the course prompt
     prompts = conversation.chat_messages.where(message_type: 'user_prompt').pluck(:content)
     prompts.join("\n\n").presence || "Generate a course structure"
+  end
+
+  def step_content
+    step = CourseStep.find(params[:id])
+    course_module = step.course_module
+
+    render json: {
+      id: step.id,
+      title: step.title,
+      step_type: step.step_type,
+      content: step.content,
+      detailed_content: step.detailed_content,
+      duration_minutes: step.duration_minutes,
+      module_title: course_module.title,
+      content_generated: step.content_generated?,
+      icon: step.icon
+    }
   end
 end

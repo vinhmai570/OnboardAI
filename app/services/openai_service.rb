@@ -180,6 +180,48 @@ class OpenaiService
     {}
   end
 
+  # Generate detailed educational content from a prompt
+  def self.generate_content(prompt, system_message = nil)
+    Rails.logger.info "Generating detailed content using OpenAI (#{prompt.length} characters)"
+
+    messages = []
+
+    if system_message
+      messages << {
+        role: "system",
+        content: system_message
+      }
+    end
+
+    messages << {
+      role: "user",
+      content: prompt
+    }
+
+    response = client.chat(
+      parameters: {
+        model: "gpt-4",
+        messages: messages,
+        temperature: 0.7,
+        max_tokens: 1500
+      }
+    )
+
+    {
+      'choices' => [
+        {
+          'message' => {
+            'content' => response.dig("choices", 0, "message", "content")
+          }
+        }
+      ]
+    }
+  rescue => e
+    Rails.logger.error "OpenAI Content Generation Error: #{e.message}"
+    Rails.logger.error e.backtrace.first(3).join("\n")
+    nil
+  end
+
   private
 
   def self.build_task_list_prompt(user_prompt, context)

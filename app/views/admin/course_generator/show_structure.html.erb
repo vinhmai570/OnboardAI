@@ -79,7 +79,27 @@
               <p class="text-gray-600 mb-4"><%= @course.structure['overview'] %></p>
             <% end %>
 
-                        <!-- Modules Container (Sortable) -->
+            <!-- Generate Full Course Button -->
+            <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <div class="flex items-center justify-between">
+                <div>
+                  <h3 class="text-blue-800 font-semibold mb-1">Ready to Generate Full Course Content?</h3>
+                  <p class="text-blue-700 text-sm">Create detailed content for each module with interactive quizzes and assessments.</p>
+                </div>
+                <div>
+                  <form action="<%= generate_full_course_admin_course_generator_path(@course.id) %>" method="post" style="display: inline;">
+                    <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
+                    <input type="submit"
+                           value="🚀 Generate Full Course"
+                           class="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 shadow-sm"
+                           id="generate-full-course-button"
+                           onclick="this.disabled=true; this.value='⏳ Generating full course...'; this.form.submit();" />
+                  </form>
+                </div>
+              </div>
+            </div>
+
+            <!-- Modules Container (Sortable) -->
             <div id="modules-container" class="space-y-4" data-course-id="<%= @course.id %>">
               <% @course_modules.each_with_index do |course_module, index| %>
                 <div class="module-item border border-gray-200 rounded-lg p-4" data-module-id="<%= course_module.id %>">

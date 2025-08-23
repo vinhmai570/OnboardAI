@@ -45,4 +45,22 @@ class Course < ApplicationRecord
   def structured?
     course_modules.any?
   end
+
+  def full_content_generated?
+    full_content_generated == true
+  end
+
+  def content_generation_progress
+    return 0 if course_modules.empty?
+
+    total_items = course_modules.count + course_steps.count
+    generated_modules = course_modules.where(content_generated: true).count
+    generated_steps = course_steps.where(content_generated: true).count
+
+    ((generated_modules + generated_steps).to_f / total_items * 100).round
+  end
+
+  def quiz_count
+    course_steps.where(step_type: 'assessment').count
+  end
 end
