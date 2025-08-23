@@ -6,9 +6,13 @@ class GenerateFullCourseJob < ApplicationJob
 
     @course = Course.find(course_id)
     @course_modules = @course.course_modules.includes(:course_steps).ordered
+    @conversation = @course.conversation
+
+    # Extract document context from conversation
+    @document_context = extract_document_context
 
     begin
-            # Generate detailed content for each module and its steps
+      # Generate detailed content for each module and its steps using document context
       total_modules = @course_modules.count
       completed_modules = 0
 
@@ -57,6 +61,7 @@ class GenerateFullCourseJob < ApplicationJob
       generated_items = generated_modules + generated_steps
 
       Rails.logger.info "Content generation summary:"
+      Rails.logger.info "  Documents used: #{@document_context[:documents].count} (#{@document_context[:chunks].count} chunks)"
       Rails.logger.info "  Modules: #{generated_modules}/#{@course_modules.count} generated"
       Rails.logger.info "  Steps: #{generated_steps}/#{@course.course_steps.count} generated"
       Rails.logger.info "  Total items: #{generated_items}/#{total_items} generated"
@@ -91,6 +96,66 @@ class GenerateFullCourseJob < ApplicationJob
   end
 
   private
+
+  def extract_document_context
+    return { chunks: [], documents: [] } unless @conversation
+
+    Rails.logger.info "Extracting document context from conversation #{@conversation.id}"
+
+    # Extract document IDs from all user messages in the conversation
+    mentioned_document_ids = []
+    @conversation.chat_messages.where(message_type: 'user_prompt').each do |message|
+      mentioned_document_ids += extract_document_mentions(message.content)
+    end
+    mentioned_document_ids = mentioned_document_ids.uniq
+
+    Rails.logger.info "Found #{mentioned_document_ids.length} referenced documents in conversation"
+
+    # Get referenced documents and their chunks
+    if mentioned_document_ids.any?
+      referenced_documents = Document.where(id: mentioned_document_ids).includes(:document_chunks)
+      context_chunks = referenced_documents.flat_map(&:document_chunks).select { |chunk| chunk.embedding.present? }
+
+      Rails.logger.info "Loaded #{context_chunks.length} chunks from #{referenced_documents.length} documents for full course generation"
+
+      {
+        chunks: context_chunks,
+        documents: referenced_documents,
+        document_ids: mentioned_document_ids
+      }
+    else
+      Rails.logger.warn "No documents referenced in conversation - content will be generated without document context"
+      { chunks: [], documents: [], document_ids: [] }
+    end
+  rescue => e
+    Rails.logger.error "Error extracting document context: #{e.message}"
+    { chunks: [], documents: [], document_ids: [] }
+  end
+
+  def extract_document_mentions(text)
+    return [] unless text.present?
+
+    # Extract @filename patterns from the text (same logic as controller)
+    filenames = text.scan(/@([a-z0-9_.-]+)/i).flatten
+
+    # Get all documents to match against
+    all_documents = Document.all
+
+    # Find document IDs based on filenames
+    document_ids = []
+    filenames.each do |filename|
+      all_documents.each do |doc|
+        # Use simple filename matching (could be enhanced with better sanitization)
+        sanitized_filename = doc.title.downcase.gsub(/[^a-z0-9_.-]/, '_')
+        if sanitized_filename == filename.downcase
+          document_ids << doc.id
+          Rails.logger.info "Matched filename '#{filename}' to document ID #{doc.id} (#{doc.title})"
+        end
+      end
+    end
+
+    document_ids.uniq
+  end
 
   def generate_module_content(course_module)
     # Generate detailed description and overview for the module
@@ -188,6 +253,22 @@ class GenerateFullCourseJob < ApplicationJob
       }
     }
 
+    # Build document context
+    document_context = ""
+    if @document_context[:chunks].any?
+      document_context = "\n\nREFERENCED DOCUMENT CONTENT:\n"
+      document_context += "Base your content STRICTLY on the following document excerpts:\n\n"
+
+      @document_context[:chunks].first(5).each_with_index do |chunk, i|
+        document_context += "--- Document Excerpt #{i+1} ---\n"
+        document_context += "#{chunk.content}\n\n"
+      end
+
+      document_context += "IMPORTANT: Only use information from the above document excerpts. Do not add external knowledge not found in these documents.\n"
+    else
+      document_context = "\n\nWARNING: No document context available. Please generate generic educational content."
+    end
+
     <<~PROMPT
       Generate detailed educational content for a course module with the following context:
 
@@ -197,9 +278,9 @@ class GenerateFullCourseJob < ApplicationJob
       Duration: #{course_context[:module_duration]} minutes
 
       Steps in this module:
-      #{course_context[:steps].map.with_index { |step, i| "#{i+1}. #{step[:title]} (#{step[:type]}, #{step[:duration]}min)" }.join("\n")}
+      #{course_context[:steps].map.with_index { |step, i| "#{i+1}. #{step[:title]} (#{step[:type]}, #{step[:duration]}min)" }.join("\n")}#{document_context}
 
-      Please generate:
+      Please generate (based ONLY on the referenced document content):
       1. A comprehensive module overview (2-3 paragraphs)
       2. Learning objectives for this module (3-5 bullet points)
       3. Key concepts that will be covered
@@ -208,12 +289,32 @@ class GenerateFullCourseJob < ApplicationJob
 
       Format the response in clear, educational markdown format. Make it engaging and informative for adult learners.
       The content should be detailed enough to guide both instructors and self-directed learners.
+
+      CRITICAL: Only reference information found in the provided document excerpts above. Do not include external knowledge.
     PROMPT
   end
 
   def build_step_content_prompt(step)
     module_context = step.course_module
     course_context = module_context.course
+
+    # Build document context for this specific step
+    document_context = ""
+    if @document_context[:chunks].any?
+      document_context = "\n\nREFERENCED DOCUMENT CONTENT:\n"
+      document_context += "Base your content STRICTLY on the following document excerpts:\n\n"
+
+      # Limit to most relevant chunks for the step
+      relevant_chunks = @document_context[:chunks].first(3)
+      relevant_chunks.each_with_index do |chunk, i|
+        document_context += "--- Document Excerpt #{i+1} ---\n"
+        document_context += "#{chunk.content}\n\n"
+      end
+
+      document_context += "IMPORTANT: Only use information from the above document excerpts. Do not add external knowledge not found in these documents.\n"
+    else
+      document_context = "\n\nWARNING: No document context available. Please generate generic educational content."
+    end
 
     <<~PROMPT
       Generate detailed educational content for a specific learning step with the following context:
@@ -223,19 +324,21 @@ class GenerateFullCourseJob < ApplicationJob
       Step: #{step.title}
       Type: #{step.step_type}
       Duration: #{step.duration_minutes} minutes
-      Current Content: #{step.content}
+      Current Content: #{step.content}#{document_context}
 
-      Based on the step type "#{step.step_type}", please generate appropriate detailed content:
+      Based on the step type "#{step.step_type}", please generate appropriate detailed content using ONLY the referenced document content:
 
       #{step_type_instructions(step.step_type)}
 
       Format the response in clear, educational markdown format. Include:
-      - Clear explanations with examples
-      - Practical applications where relevant
+      - Clear explanations with examples FROM THE DOCUMENTS
+      - Practical applications where relevant FROM THE DOCUMENTS
       - Interactive elements if appropriate for the step type
-      - Clear action items or takeaways
+      - Clear action items or takeaways based on DOCUMENT CONTENT
 
       Make the content engaging and suitable for adult learners in a professional development context.
+
+      CRITICAL: Only reference information found in the provided document excerpts above. Do not include external knowledge.
     PROMPT
   end
 
@@ -243,52 +346,52 @@ class GenerateFullCourseJob < ApplicationJob
     case step_type
     when 'lesson'
       <<~INSTRUCTIONS
-        For a LESSON step, provide:
-        1. Core concept explanation with clear definitions
-        2. Real-world examples and use cases
-        3. Step-by-step breakdown of key processes
-        4. Common misconceptions to avoid
-        5. Visual elements description (diagrams, charts, etc.)
+        For a LESSON step, provide (using ONLY document content):
+        1. Core concept explanation with clear definitions FROM THE DOCUMENTS
+        2. Real-world examples and use cases MENTIONED IN THE DOCUMENTS
+        3. Step-by-step breakdown of key processes FROM THE DOCUMENTS
+        4. Common misconceptions to avoid based on DOCUMENT GUIDANCE
+        5. Visual elements description if mentioned in DOCUMENTS
       INSTRUCTIONS
     when 'exercise'
       <<~INSTRUCTIONS
-        For an EXERCISE step, provide:
-        1. Clear instructions for the practical activity
-        2. Expected outcomes and success criteria
-        3. Tools or resources needed
-        4. Step-by-step guidance
-        5. Troubleshooting tips for common issues
-        6. Self-assessment questions
+        For an EXERCISE step, provide (using ONLY document content):
+        1. Clear instructions for activities described in THE DOCUMENTS
+        2. Expected outcomes and success criteria FROM THE DOCUMENTS
+        3. Tools or resources MENTIONED IN THE DOCUMENTS
+        4. Step-by-step guidance BASED ON DOCUMENT PROCEDURES
+        5. Troubleshooting tips from DOCUMENT EXAMPLES
+        6. Self-assessment questions based on DOCUMENT CONTENT
       INSTRUCTIONS
     when 'reading'
       <<~INSTRUCTIONS
-        For a READING step, provide:
-        1. Curated content or article-style material
-        2. Key points to focus on while reading
-        3. Discussion questions for reflection
-        4. Connections to other course concepts
-        5. Additional recommended resources
+        For a READING step, provide (using ONLY document content):
+        1. Key passages or content FROM THE DOCUMENTS
+        2. Key points to focus on BASED ON DOCUMENT HIGHLIGHTS
+        3. Discussion questions for reflection ON DOCUMENT CONTENT
+        4. Connections to other concepts WITHIN THE DOCUMENTS
+        5. Additional context FROM OTHER PARTS OF THE DOCUMENTS
       INSTRUCTIONS
     when 'video'
       <<~INSTRUCTIONS
-        For a VIDEO step, provide:
-        1. Video concept outline and key topics covered
-        2. Timestamps for important sections
-        3. Note-taking template or guide
-        4. Follow-up questions after watching
-        5. Related resources and further reading
+        For a VIDEO step, provide (using ONLY document content):
+        1. Video concept outline based on DOCUMENT TOPICS
+        2. Key sections to focus on FROM DOCUMENT STRUCTURE
+        3. Note-taking template based on DOCUMENT INFORMATION
+        4. Follow-up questions FROM DOCUMENT CONTENT
+        5. Related concepts from OTHER PARTS OF THE DOCUMENTS
       INSTRUCTIONS
     when 'assessment'
       <<~INSTRUCTIONS
-        For an ASSESSMENT step, provide:
-        1. Assessment instructions and format
-        2. Evaluation criteria or rubric
-        3. Sample questions or examples
-        4. Preparation tips and study guide
-        5. How results connect to learning objectives
+        For an ASSESSMENT step, provide (using ONLY document content):
+        1. Assessment instructions based on DOCUMENT GUIDANCE
+        2. Evaluation criteria FROM THE DOCUMENTS
+        3. Sample questions based on DOCUMENT CONTENT
+        4. Preparation tips FROM DOCUMENT RECOMMENDATIONS
+        5. Learning objectives connections TO DOCUMENT TOPICS
       INSTRUCTIONS
     else
-      "Provide comprehensive educational content appropriate for this step type, including explanations, examples, and practical guidance."
+      "Provide comprehensive educational content appropriate for this step type, using ONLY information from the referenced documents. Include explanations, examples, and practical guidance EXCLUSIVELY from document content."
     end
   end
 
@@ -296,6 +399,24 @@ class GenerateFullCourseJob < ApplicationJob
     steps_content = course_module.course_steps.ordered.map { |step|
       "- #{step.title} (#{step.step_type}): #{step.content}"
     }.join("\n")
+
+    # Build document context for quiz
+    document_context = ""
+    if @document_context[:chunks].any?
+      document_context = "\n\nREFERENCED DOCUMENT CONTENT FOR QUIZ QUESTIONS:\n"
+      document_context += "Base ALL quiz questions STRICTLY on the following document excerpts:\n\n"
+
+      # Use more chunks for quiz to have broader question coverage
+      quiz_chunks = @document_context[:chunks].first(8)
+      quiz_chunks.each_with_index do |chunk, i|
+        document_context += "--- Document Excerpt #{i+1} ---\n"
+        document_context += "#{chunk.content}\n\n"
+      end
+
+      document_context += "CRITICAL: All quiz questions and answers must be based on information found in the above document excerpts only.\n"
+    else
+      document_context = "\n\nWARNING: No document context available. Please generate generic quiz questions."
+    end
 
     <<~PROMPT
       Create a comprehensive quiz for the following course module:
@@ -305,27 +426,27 @@ class GenerateFullCourseJob < ApplicationJob
       Duration: #{course_module.duration_minutes} minutes
 
       Steps covered in this module:
-      #{steps_content}
+      #{steps_content}#{document_context}
 
-      Generate a combo quiz that includes:
+      Generate a combo quiz that includes (based ONLY on the referenced document content):
 
       1. **Multiple Choice Questions (5 questions)**
-         - Test key concepts and understanding
+         - Test key concepts from the DOCUMENTS
          - Include 4 options each with clear distractors
-         - Mark correct answers with explanation
+         - Mark correct answers with explanation FROM DOCUMENTS
 
       2. **True/False Questions (3 questions)**
-         - Focus on common misconceptions
-         - Provide detailed explanations for each answer
+         - Focus on information specifically mentioned in DOCUMENTS
+         - Provide detailed explanations for each answer using DOCUMENT CONTENT
 
       3. **Short Answer Questions (2 questions)**
-         - Test practical application of concepts
-         - Provide sample answers and evaluation criteria
+         - Test practical application of concepts FROM DOCUMENTS
+         - Provide sample answers based on DOCUMENT INFORMATION
 
       4. **Scenario-Based Question (1 question)**
-         - Present a realistic workplace scenario
-         - Test ability to apply module concepts
-         - Include detailed solution approach
+         - Present a realistic scenario based on DOCUMENT EXAMPLES
+         - Test ability to apply concepts FROM DOCUMENTS
+         - Include detailed solution approach using DOCUMENT GUIDANCE
 
       Format the quiz in clear markdown with:
       - Question numbers and clear formatting
@@ -333,8 +454,9 @@ class GenerateFullCourseJob < ApplicationJob
       - Correct answers and explanations at the end
       - Estimated time: 15 minutes total
 
-      Make questions challenging but fair, focusing on practical application rather than memorization.
-      Ensure questions cover all major topics from the module steps.
+      Make questions challenging but fair, focusing on practical application of DOCUMENT CONTENT.
+
+      CRITICAL: All questions, answers, and explanations must be based exclusively on the provided document excerpts above. Do not include external knowledge.
     PROMPT
   end
 
@@ -363,7 +485,7 @@ class GenerateFullCourseJob < ApplicationJob
           <div class="max-w-md mx-auto space-y-3 mb-6">
             <div class="flex items-center space-x-3">
               <div class="bg-green-500 rounded-full h-3 w-3"></div>
-              <span class="text-sm text-green-800">Generating detailed module content...</span>
+              <span class="text-sm text-green-800">Generating content from your documents...</span>
             </div>
             <div class="flex items-center space-x-3">
               <div class="animate-pulse bg-blue-300 rounded-full h-3 w-3"></div>
@@ -371,7 +493,7 @@ class GenerateFullCourseJob < ApplicationJob
             </div>
             <div class="flex items-center space-x-3">
               <div class="animate-pulse bg-red-300 rounded-full h-3 w-3 delay-200"></div>
-              <span class="text-sm text-red-800">Building comprehensive quizzes...</span>
+              <span class="text-sm text-red-800">Building document-based quizzes...</span>
             </div>
           </div>
 
@@ -392,7 +514,7 @@ class GenerateFullCourseJob < ApplicationJob
         <div class="text-center py-8 bg-green-50 border border-green-200 rounded-lg">
           <div class="text-green-600 text-6xl mb-4">🎉</div>
           <h2 class="text-xl font-semibold text-green-900 mb-2">Full Course Content Generated!</h2>
-          <p class="text-green-700 mb-6">Your complete course with detailed content and interactive quizzes is ready.</p>
+          <p class="text-green-700 mb-6">Your complete course with detailed content from your documents and interactive quizzes is ready.</p>
 
           <!-- Success Stats -->
           <div class="bg-white rounded-lg p-4 mb-6 mx-auto max-w-md">
