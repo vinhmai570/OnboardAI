@@ -1,0 +1,35 @@
+Welcome to OnboardAI Test Document
+
+This is a simple test document to verify automatic processing functionality.
+
+Introduction
+============
+This document contains various sections to test the text chunking and processing capabilities of our system.
+
+Features
+========
+1. Automatic text extraction from uploaded files
+2. Intelligent text chunking for optimal AI processing
+3. Background job processing for scalability
+4. Real-time status updates for users
+
+Benefits
+========
+The automatic processing system provides several key benefits:
+- Immediate processing without manual intervention
+- Scalable architecture using background jobs
+- Error handling and retry mechanisms
+- Clear status feedback to users
+
+Technical Implementation
+=======================
+The system uses Rails Active Job for background processing, with the following components:
+- DocumentProcessingService for text extraction and chunking
+- EmbeddingGenerationJob for AI vector creation
+- Status tracking for user feedback
+
+This test document should be automatically processed into several text chunks when uploaded through the OnboardAI interface.
+
+Conclusion
+==========
+The automatic processing feature ensures that uploaded documents are immediately available for AI-powered course generation and content analysis.

@@ -42,6 +42,9 @@ Rails.application.routes.draw do
       member do
         post :process_document
       end
+      collection do
+        delete :bulk_delete
+      end
     end
     resources :courses do
       member do

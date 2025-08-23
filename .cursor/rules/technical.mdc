@@ -6,3 +6,4 @@ alwaysApply: true
 - Encapsulate business logic within dedicated service objects, ensuring controllers and models remain focused and lightweight.
 - Avoid "fat" controllers and models by delegating complex operations and workflows to service objects or other appropriate abstractions.
 - Structure features to promote reusability, clarity, and separation of concerns, making the codebase easier to test, extend, and refactor.
+- Ensure that an error is raised if the application cannot connect to OpenAI or if OpenAI is not properly configured, so that such issues are not silently ignored.

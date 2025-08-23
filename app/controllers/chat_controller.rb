@@ -14,10 +14,8 @@ class ChatController < ApplicationController
       response = "Hello! I'm your OnboardAI assistant. How can I help you today?"
     end
 
-    if ENV['OPENAI_ACCESS_TOKEN'].present?
-      # Use OpenAI for real responses (commented out for demo)
-      # response = OpenaiService.chat_response(message, context_chunks)
-    end
+    # Use OpenAI for real responses (commented out for demo)
+    # response = OpenaiService.chat_response(message, context_chunks)
 
     render json: { response: response }
   end

@@ -3,17 +3,49 @@ class OpenaiService
     @client ||= OpenAI::Client.new
   end
 
-  # Generate embeddings for text
+  def self.azure_embedding_client
+    @azure_embedding_client ||= begin
+        Rails.logger.info "🔧 Configuring Azure OpenAI client for embeddings"
+        Rails.logger.info "   Endpoint: #{ENV['AZURE_OPENAI_ENDPOINT']}"
+        Rails.logger.info "   Deployment: #{ENV['AZURE_OPENAI_EMBEDDINGS_DEPLOYMENT']}"
+        ::OpenAI::Client.new(
+          access_token: ENV.fetch("OPENAI_API_KEY"),
+          uri_base: File.join(ENV.fetch("AZURE_OPENAI_ENDPOINT"), "openai", "deployments", ENV.fetch("AZURE_OPENAI_EMBEDDINGS_DEPLOYMENT", "text-embedding-3-small")),
+          api_version: "2023-12-01-preview"
+        )
+    end
+  end
+
+  # Generate embeddings for text using Azure OpenAI
   def self.generate_embedding(text)
-    response = client.embeddings(
+    return nil if text.blank?
+
+    Rails.logger.info "Generating embedding for text (#{text.length} characters) using Azure OpenAI"
+
+    # Truncate text if too long (OpenAI has token limits)
+    truncated_text = text.length > 8000 ? text[0..8000] : text
+
+    embedding_client = azure_embedding_client
+
+    response = embedding_client.embeddings(
       parameters: {
-        model: "text-embedding-ada-002",
-        input: text
+        model: "text-embedding-3-small",
+        input: truncated_text
       }
     )
-    response.dig("data", 0, "embedding")
+
+    embedding = response.dig("data", 0, "embedding")
+
+    if embedding && embedding.is_a?(Array)
+      Rails.logger.info "✅ Successfully generated embedding with #{embedding.length} dimensions via Azure OpenAI"
+      embedding
+    else
+      Rails.logger.error "❌ Invalid embedding response format from Azure OpenAI"
+      nil
+    end
   rescue => e
-    Rails.logger.error "OpenAI Embedding Error: #{e.message}"
+    Rails.logger.error "❌ Azure OpenAI Embedding Error: #{e.message}"
+    Rails.logger.error e.backtrace.first(5).join("\n")
     nil
   end
 
@@ -42,7 +74,7 @@ class OpenaiService
 
     content = response.dig("choices", 0, "message", "content")
     JSON.parse(content)
-  rescue JSON::ParserError, => e
+  rescue JSON::ParserError => e
     Rails.logger.error "OpenAI Task List JSON Parse Error: #{e.message}"
     []
   rescue => e
@@ -75,7 +107,7 @@ class OpenaiService
 
     content = response.dig("choices", 0, "message", "content")
     JSON.parse(content)
-  rescue JSON::ParserError, => e
+  rescue JSON::ParserError => e
     Rails.logger.error "OpenAI Course Details JSON Parse Error: #{e.message}"
     {}
   rescue => e

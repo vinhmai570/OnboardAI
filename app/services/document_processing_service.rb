@@ -117,6 +117,11 @@ class DocumentProcessingService
   end
 
   def create_document_chunks(chunks)
+    Rails.logger.info "Creating #{chunks.length} chunks for document: #{@document.title}"
+
+    created_chunks = 0
+    failed_chunks = 0
+
     chunks.each do |chunk_data|
       chunk = @document.document_chunks.build(
         content: chunk_data[:content],
@@ -124,11 +129,18 @@ class DocumentProcessingService
       )
 
       if chunk.save
+        created_chunks += 1
+        Rails.logger.info "✅ Created chunk #{chunk_data[:order]} for document #{@document.id}"
+
         # Generate embedding asynchronously
         EmbeddingGenerationJob.perform_later(chunk)
+        Rails.logger.info "🚀 Queued embedding generation for chunk #{chunk.id}"
       else
-        Rails.logger.error "Failed to save chunk #{chunk_data[:order]}: #{chunk.errors.full_messages}"
+        failed_chunks += 1
+        Rails.logger.error "❌ Failed to save chunk #{chunk_data[:order]}: #{chunk.errors.full_messages}"
       end
     end
+
+    Rails.logger.info "📊 Document processing summary - Created: #{created_chunks}, Failed: #{failed_chunks}"
   end
 end

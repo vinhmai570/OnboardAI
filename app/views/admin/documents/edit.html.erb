@@ -1,2 +1,122 @@
-<h1>Admin::Documents#edit</h1>
-<p>Find me in app/views/admin/documents/edit.html.erb</p>
+<div class="min-h-screen bg-gray-50">
+  <nav class="bg-white shadow">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between h-16">
+        <div class="flex">
+          <div class="flex-shrink-0 flex items-center">
+            <h1 class="text-2xl font-bold text-gray-900">OnboardAI Admin</h1>
+          </div>
+        </div>
+        <div class="flex items-center space-x-4">
+          <%= link_to "Dashboard", admin_dashboard_path, class: "text-indigo-600 hover:text-indigo-900" %>
+          <%= link_to "Documents", admin_documents_path, class: "text-indigo-600 hover:text-indigo-900" %>
+          <%= link_to "Logout", logout_path, method: :delete, class: "text-red-600 hover:text-red-900" %>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="max-w-3xl mx-auto py-6 sm:px-6 lg:px-8">
+    <div class="px-4 py-6 sm:px-0">
+      <div class="mb-8">
+        <h2 class="text-3xl font-bold text-gray-900">Edit Document</h2>
+        <p class="mt-2 text-gray-600">Update document information. Note: You cannot change the file once uploaded.</p>
+      </div>
+
+      <div class="bg-white shadow rounded-lg">
+        <div class="px-4 py-5 sm:p-6">
+          <%= form_with model: [:admin, @document], local: true, class: "space-y-6" do |form| %>
+
+            <!-- Error Messages -->
+            <% if @document.errors.any? %>
+              <div class="rounded-md bg-red-50 p-4">
+                <div class="flex">
+                  <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                    </svg>
+                  </div>
+                  <div class="ml-3">
+                    <h3 class="text-sm font-medium text-red-800">There were some errors:</h3>
+                    <ul class="mt-2 text-sm text-red-700 list-disc list-inside">
+                      <% @document.errors.full_messages.each do |message| %>
+                        <li><%= message %></li>
+                      <% end %>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            <% end %>
+
+            <!-- Document Title -->
+            <div>
+              <%= form.label :title, class: "block text-sm font-medium text-gray-700" %>
+              <div class="mt-1">
+                <%= form.text_field :title, required: true, placeholder: "Enter document title...",
+                    class: "shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md" %>
+              </div>
+              <p class="mt-2 text-sm text-gray-500">Give your document a descriptive title for easy identification.</p>
+            </div>
+
+            <!-- Current File Info -->
+            <% if @document.file.attached? %>
+              <div class="bg-gray-50 border border-gray-200 rounded-md p-4">
+                <div class="flex items-center">
+                  <div class="flex-shrink-0">
+                    <svg class="h-8 w-8 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-1a1 1 0 00-1-1H9a1 1 0 00-1 1v1a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z" clip-rule="evenodd" />
+                    </svg>
+                  </div>
+                  <div class="ml-3">
+                    <h3 class="text-sm font-medium text-gray-900">Current File</h3>
+                    <p class="text-sm text-gray-500">
+                      <%= @document.file.filename %> • <%= @document.file_type %> • <%= @document.file_size_human %>
+                    </p>
+                    <p class="text-xs text-gray-400 mt-1">
+                      Uploaded <%= time_ago_in_words(@document.created_at) %> ago
+                    </p>
+                  </div>
+                </div>
+              </div>
+            <% end %>
+
+            <!-- Processing Status -->
+            <div class="bg-blue-50 border border-blue-200 rounded-md p-4">
+              <div class="flex">
+                <div class="flex-shrink-0">
+                  <% if @document.processing_complete? %>
+                    <svg class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                    </svg>
+                  <% else %>
+                    <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                      <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                    </svg>
+                  <% end %>
+                </div>
+                <div class="ml-3">
+                  <h3 class="text-sm font-medium text-blue-800">Processing Status</h3>
+                  <p class="text-sm text-blue-700">
+                    <% if @document.processing_complete? %>
+                      ✅ Processing complete! Document has been chunked into <%= @document.document_chunks.count %> segments.
+                    <% else %>
+                      ⏳ Document is still being processed. This may take a few moments.
+                    <% end %>
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex justify-end space-x-3">
+              <%= link_to "Cancel", admin_documents_path,
+                  class: "bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" %>
+              <%= form.submit "Update Document",
+                  class: "inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" %>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
