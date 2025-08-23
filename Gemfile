@@ -6,6 +6,8 @@ gem "rails", "~> 8.0.2", ">= 8.0.2.1"
 gem "propshaft"
 # Use postgresql as the database for Active Record
 gem "pg", "~> 1.1"
+# Add vector similarity search capabilities with pgvector
+gem "pgvector"
 # Use the Puma web server [https://github.com/puma/puma]
 gem "puma", ">= 5.0"
 # Bundle and transpile JavaScript [https://github.com/rails/jsbundling-rails]
@@ -32,6 +34,12 @@ gem "solid_cable"
 
 # Reduces boot times through caching; required in config/boot.rb
 gem "bootsnap", require: false
+
+# Load environment variables from .env file
+gem "dotenv-rails", groups: [:development, :test]
+
+# Process manager for development
+gem "foreman", group: :development
 
 # Deploy this application anywhere as a Docker container [https://kamal-deploy.org]
 gem "kamal", require: false

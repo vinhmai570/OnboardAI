@@ -1,0 +1,8 @@
+---
+alwaysApply: true
+---
+
+- Adhere to DRY (Don't Repeat Yourself) principles throughout the codebase to minimize duplication and enhance maintainability.
+- Encapsulate business logic within dedicated service objects, ensuring controllers and models remain focused and lightweight.
+- Avoid "fat" controllers and models by delegating complex operations and workflows to service objects or other appropriate abstractions.
+- Structure features to promote reusability, clarity, and separation of concerns, making the codebase easier to test, extend, and refactor.

@@ -1,0 +1,4 @@
+---
+alwaysApply: true
+---
+- For every business logic or process change, promptly update the corresponding documentation in the ./docs directory using Markdown (.md) format. Ensure that documentation is clear, comprehensive, and accurately reflects the latest state of the business logic to facilitate team understanding and maintain project transparency.

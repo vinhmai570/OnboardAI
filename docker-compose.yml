@@ -1,0 +1,70 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: onboard_ai_postgres
+    environment:
+      POSTGRES_DB: onboard_ai_development
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    restart: unless-stopped
+    command: postgres -c shared_preload_libraries=vector
+    networks:
+      - onboard_ai_network
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: onboard_ai_web
+    environment:
+      DATABASE_NAME: onboard_ai_development
+      DATABASE_USERNAME: postgres
+      DATABASE_PASSWORD: password
+      DATABASE_HOST: postgres
+      DATABASE_PORT: 5432
+      RAILS_ENV: development
+      RAILS_MAX_THREADS: 5
+    volumes:
+      - .:/app
+      - bundle_cache:/usr/local/bundle
+      - node_modules:/app/node_modules
+    ports:
+      - "3000:3000"
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    command: ./bin/docker-dev
+    networks:
+      - onboard_ai_network
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: onboard_ai_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@onboardai.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    networks:
+      - onboard_ai_network
+
+volumes:
+  postgres_data:
+  pgadmin_data:
+  bundle_cache:
+  node_modules:
+
+networks:
+  onboard_ai_network:
+    driver: bridge

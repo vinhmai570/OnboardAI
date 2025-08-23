@@ -1,0 +1,33 @@
+#!/bin/bash
+set -e
+
+echo "Starting development setup..."
+
+# Wait for PostgreSQL to be ready
+echo "Waiting for PostgreSQL to be ready..."
+until PGPASSWORD=$DATABASE_PASSWORD psql -h "$DATABASE_HOST" -U "$DATABASE_USERNAME" -d "postgres" -c '\q' 2>/dev/null; do
+  echo "PostgreSQL is unavailable - sleeping"
+  sleep 1
+done
+
+echo "PostgreSQL is ready!"
+
+# Install dependencies if needed
+echo "Installing Ruby gems..."
+bundle check || bundle install
+
+echo "Installing Node.js dependencies..."
+yarn install --check-files
+
+# Setup database
+echo "Setting up database..."
+bundle exec rails db:prepare
+
+# Build CSS initially
+echo "Building CSS assets..."
+yarn build:css
+
+echo "Starting development server..."
+
+# Use foreman with docker-friendly Procfile
+exec foreman start -f Procfile.docker

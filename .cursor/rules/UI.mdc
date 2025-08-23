@@ -1,0 +1,91 @@
+---
+description: This rule apply when edit UI
+alwaysApply: false
+---
+Objective: Design a user interface that reflects the theme of OnboardingAI, a modern, user-centric, and innovative HR and payroll platform that simplifies the employment lifecycle for businesses, employees, and job seekers.
+Theme Description:
+The OnboardingAI theme is a blend of modern simplicity, professional innovation, and playful engagement. It emphasizes streamlined HR, payroll, and recruitment processes while empowering employees with tools for financial wellness and career growth. The tone is approachable yet professional, with a focus on efficiency, scalability, and inclusivity for diverse, remote-first work environments. The aesthetic is clean, vibrant, and visually engaging, using bold typography, intuitive layouts, and playful elements (e.g., "Rebel Rabbit" imagery and phrases like "Hop to it").
+Key Thematic Principles:
+
+Simplicity and Efficiency: Design interfaces that reduce complexity, enabling users to complete tasks (e.g., payroll, onboarding) quickly and intuitively.
+Employee Empowerment: Highlight features like earned wage access, benefits, and career tools to make employees feel valued and supported.
+Innovation and Technology: Showcase cutting-edge, AI-driven solutions with a sleek, tech-forward design that feels reliable and secure.
+Engagement and Retention: Incorporate vibrant, engaging elements to promote employee loyalty through perks, rewards, and a positive user experience.
+Global and Inclusive: Ensure the design is accessible, responsive, and adaptable for users across different regions and devices.
+
+Design Guidelines:
+
+Color Palette:
+
+Primary Background: Light Violet 500 (e.g., #E6D8F5 or similar pastel purple) for a calm, modern backdrop.
+Text Color: White (#FFFFFF) for high-contrast headings and paragraphs on darker or colored backgrounds.
+Accent Color: Neon Green (e.g., #39FF14 or #00FF7F) for call-to-action buttons and interactive elements to draw attention.
+Secondary Colors: Dark Gray (#333333) for body text/icons and Muted Blue/Purple (#8B80F9 or #6B7280) for subtle accents.
+Usage: Use Light Violet for section backgrounds, White for text on colored backgrounds, Neon Green for buttons/CTAs, and Dark Gray/Muted Blue for secondary elements to maintain balance.
+
+
+Typography:
+
+Use bold, sans-serif fonts (e.g., similar to Inter, Roboto, or Poppins) for headings to convey clarity and authority.
+Font sizes: Large for headings (e.g., 2.5rem–3.5rem for H2), medium for body text (e.g., 1rem–1.25rem).
+Ensure high contrast (e.g., white text on violet backgrounds) and accessibility compliance (WCAG 2.1 AA).
+Apply playful, action-oriented text for CTAs (e.g., “Hop to it,” “Get Started”).
+
+
+Layout:
+
+Use flexible, constrained layouts (is-layout-constrained, is-layout-flex) for responsiveness across devices.
+Center-align key content (e.g., headings, CTAs) for visual focus and balance.
+Incorporate global padding (e.g., --wp--preset--spacing--20) to ensure breathing room around elements.
+Use full-width sections (alignfull) for immersive backgrounds and hero sections.
+
+
+Imagery and Icons:
+
+Include playful yet professional imagery, such as the “Rebel Rabbit” (e.g., a stylized rabbit mascot) to add personality.
+Use high-quality, lazy-loaded images (loading="lazy") with responsive sizes (srcset) for performance optimization.
+Incorporate icons for key stats or features (e.g., payroll, compliance) with clean, minimal designs in Dark Gray or Neon Green.
+
+
+Interactive Elements:
+
+Design call-to-action buttons with Neon Green backgrounds and White text, using rounded corners and hover effects (e.g., slight scale increase or brightness shift).
+Implement modals (e.g., data-trigger-modal="request-a-demo-modal") for forms or demos, ensuring smooth animations and accessibility.
+Highlight video thumbnails and customer testimonials with subtle borders or shadows to draw attention.
+
+
+Tone and Messaging:
+
+Use a friendly, empowering tone in copy (e.g., “Know your worth, get paid more,” “Be the employer everyone wants to work for”).
+Emphasize benefits like time savings, financial wellness, and employee engagement in headings and subtext.
+Keep messaging concise and action-oriented to drive conversions (e.g., demo requests, sign-ups).
+
+
+Accessibility:
+
+Ensure color contrast ratios meet WCAG 2.1 AA standards (e.g., White text on Light Violet background).
+Use semantic HTML (e.g., <figure>, <h2>, <p>) and ARIA attributes for screen readers.
+Optimize images with descriptive alt text (e.g., alt="Rebel Rabbit Laying Down").
+
+
+Responsiveness:
+
+Use responsive design principles (sizes="auto, (max-width: 920px) 100vw, 920px") to adapt to mobile, tablet, and desktop screens.
+Prioritize vertical stacking (is-vertical) for mobile layouts to maintain readability.
+
+
+
+Implementation Notes:
+
+Reference the provided HTML structure (e.g., wp-block-group, wp-block-buttons) to maintain consistency with WordPress block-based design.
+Test UI elements for cross-browser compatibility and performance, especially for lazy-loaded images and modals.
+If exact hex codes are needed, extract from the website’s CSS or request manual input for precision.
+
+Example Component:
+For a hero section:
+
+Background: Light Violet 500 (#E6D8F5).
+Centered H2: White, bold, 2.5rem, “Jump into Employment OS.”
+Subtext: White, 1.25rem, “Streamline every step of the employment lifecycle.”
+CTA Button: Neon Green (#39FF14), White text, “Hop to it,” with hover effect.
+Image: Rebel Rabbit (480px width, responsive srcset).
