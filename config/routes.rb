@@ -98,8 +98,17 @@ Rails.application.routes.draw do
           member do
             patch :move_up
             patch :move_down
+            get :quiz_check
           end
         end
+      end
+    end
+
+    # Admin quiz management
+    resources :quizzes do
+      member do
+        get :analytics
+        post :regenerate
       end
     end
   end
@@ -111,6 +120,27 @@ Rails.application.routes.draw do
       patch :complete_step
     end
     resources :steps, only: [ :show ]
+  end
+
+  # Quiz routes for users
+  resources :quizzes, only: [ :show ] do
+    member do
+      post :start
+      get :start # Handle direct GET access to start URL
+      patch :submit
+      get :results
+      patch :save_progress
+    end
+  end
+
+  # Progress tracking routes
+  resources :progress, only: [ :index ] do
+    collection do
+      get :dashboard
+      get 'course/:course_id', to: 'progress#course_progress', as: 'course_progress'
+      post 'step/:course_step_id/start', to: 'progress#start_step', as: 'start_step'
+      patch 'step/:course_step_id/complete', to: 'progress#complete_step', as: 'complete_step'
+    end
   end
 
   # Chat API

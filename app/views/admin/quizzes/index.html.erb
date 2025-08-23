@@ -1,0 +1,251 @@
+<% content_for :title, "Quiz Management" %>
+
+<div class="max-w-7xl mx-auto px-4 py-6">
+  <!-- Header -->
+  <div class="mb-6">
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900">Quiz Management</h1>
+        <p class="text-gray-600 mt-1">Manage and monitor all course quizzes</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="bg-white rounded-lg shadow-sm mb-6 p-4">
+    <div class="flex items-center space-x-4">
+      <%= form_with url: admin_quizzes_path, method: :get, local: true, class: "flex items-center space-x-4" do |form| %>
+        <div>
+          <%= form.select :course_id,
+                          options_from_collection_for_select(@courses, :id, :title, params[:course_id]),
+                          { include_blank: "All Courses" },
+                          { class: "border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" } %>
+        </div>
+        <div>
+          <%= form.submit "Filter", class: "px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700" %>
+        </div>
+        <% if params[:course_id].present? %>
+          <div>
+            <%= link_to "Clear", admin_quizzes_path, class: "px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50" %>
+          </div>
+        <% end %>
+      <% end %>
+    </div>
+  </div>
+
+  <!-- Quiz Statistics -->
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+    <div class="bg-white rounded-lg shadow-sm p-6">
+      <div class="flex items-center">
+        <div class="flex-shrink-0">
+          <div class="flex items-center justify-center h-8 w-8 bg-blue-500 rounded-md">
+            <span class="text-white text-sm font-medium">📝</span>
+          </div>
+        </div>
+        <div class="ml-5 w-0 flex-1">
+          <dl>
+            <dt class="text-sm font-medium text-gray-500 truncate">Total Quizzes</dt>
+            <dd class="text-lg font-medium text-gray-900"><%= @quizzes.count %></dd>
+          </dl>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-sm p-6">
+      <div class="flex items-center">
+        <div class="flex-shrink-0">
+          <div class="flex items-center justify-center h-8 w-8 bg-green-500 rounded-md">
+            <span class="text-white text-sm font-medium">✓</span>
+          </div>
+        </div>
+        <div class="ml-5 w-0 flex-1">
+          <dl>
+            <dt class="text-sm font-medium text-gray-500 truncate">Total Attempts</dt>
+            <dd class="text-lg font-medium text-gray-900">
+              <%= QuizAttempt.joins(:quiz).where(quiz: @quizzes).count %>
+            </dd>
+          </dl>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-sm p-6">
+      <div class="flex items-center">
+        <div class="flex-shrink-0">
+          <div class="flex items-center justify-center h-8 w-8 bg-yellow-500 rounded-md">
+            <span class="text-white text-sm font-medium">📊</span>
+          </div>
+        </div>
+        <div class="ml-5 w-0 flex-1">
+          <dl>
+            <dt class="text-sm font-medium text-gray-500 truncate">Avg Score</dt>
+            <dd class="text-lg font-medium text-gray-900">
+              <%= QuizAttempt.joins(:quiz)
+                            .where(quiz: @quizzes, status: 'completed')
+                            .where.not(score: nil, total_points: nil)
+                            .average('score::float / total_points::float * 100')
+                            &.round(1) || 0 %>%
+            </dd>
+          </dl>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-sm p-6">
+      <div class="flex items-center">
+        <div class="flex-shrink-0">
+          <div class="flex items-center justify-center h-8 w-8 bg-purple-500 rounded-md">
+            <span class="text-white text-sm font-medium">🎯</span>
+          </div>
+        </div>
+        <div class="ml-5 w-0 flex-1">
+          <dl>
+            <dt class="text-sm font-medium text-gray-500 truncate">Pass Rate</dt>
+            <dd class="text-lg font-medium text-gray-900">
+              <% total_completed = QuizAttempt.joins(:quiz).where(quiz: @quizzes, status: 'completed').count %>
+              <% passed = QuizAttempt.joins(:quiz).where(quiz: @quizzes, status: 'completed').where('score::float / total_points::float * 100 >= 70').count %>
+              <%= total_completed.zero? ? 0 : (passed.to_f / total_completed * 100).round(1) %>%
+            </dd>
+          </dl>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quizzes Table -->
+  <div class="bg-white shadow-sm rounded-lg overflow-hidden">
+    <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+      <h3 class="text-lg font-medium text-gray-900">
+        Quizzes
+        <% if @selected_course %>
+          <span class="text-sm font-normal text-gray-600">for <%= @selected_course.title %></span>
+        <% end %>
+      </h3>
+    </div>
+
+    <% if @quizzes.any? %>
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Quiz Info
+              </th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Course Location
+              </th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Questions
+              </th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Performance
+              </th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            <% @quizzes.each do |quiz| %>
+              <tr class="hover:bg-gray-50">
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="flex items-center">
+                    <div class="flex-shrink-0 h-10 w-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                      <span class="text-blue-600 font-semibold">📝</span>
+                    </div>
+                    <div class="ml-4">
+                      <div class="text-sm font-medium text-gray-900">
+                        <%= quiz.title %>
+                      </div>
+                      <div class="text-sm text-gray-500">
+                        <%= quiz.total_points %> points •
+                        <% if quiz.time_limit_minutes %>
+                          <%= quiz.time_limit_minutes %>m limit
+                        <% else %>
+                          No time limit
+                        <% end %>
+                      </div>
+                    </div>
+                  </div>
+                </td>
+
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="text-sm text-gray-900">
+                    <%= quiz.course_step.course_module.course.title %>
+                  </div>
+                  <div class="text-sm text-gray-500">
+                    <%= quiz.course_step.course_module.title %> ›
+                    <%= quiz.course_step.title %>
+                  </div>
+                </td>
+
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="text-sm font-medium text-gray-900">
+                    <%= quiz.question_count %> questions
+                  </div>
+                  <div class="text-sm text-gray-500">
+                    <% mc_count = quiz.quiz_questions.where(question_type: 'multiple_choice').count %>
+                    <% tf_count = quiz.quiz_questions.where(question_type: 'true_false').count %>
+                    <% sa_count = quiz.quiz_questions.where(question_type: 'short_answer').count %>
+                    <%= "#{mc_count} MC" if mc_count > 0 %>
+                    <%= ", #{tf_count} T/F" if tf_count > 0 %>
+                    <%= ", #{sa_count} SA" if sa_count > 0 %>
+                  </div>
+                </td>
+
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="text-sm font-medium text-gray-900">
+                    <%= quiz.quiz_attempts.completed.count %> attempts
+                  </div>
+                  <div class="text-sm text-gray-500">
+                    <%= quiz.average_score.round(1) %>% avg •
+                    <%= quiz.completion_rate.round(1) %>% completion
+                  </div>
+                </td>
+
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                  <%= link_to admin_quiz_path(quiz),
+                              class: "text-blue-600 hover:text-blue-900" do %>
+                    View
+                  <% end %>
+
+                  <%= link_to analytics_admin_quiz_path(quiz),
+                              class: "text-purple-600 hover:text-purple-900" do %>
+                    Analytics
+                  <% end %>
+
+                  <%= link_to edit_admin_quiz_path(quiz),
+                              class: "text-green-600 hover:text-green-900" do %>
+                    Edit
+                  <% end %>
+
+                  <%= link_to regenerate_admin_quiz_path(quiz),
+                              method: :post,
+                              class: "text-orange-600 hover:text-orange-900",
+                              data: { confirm: "This will replace all existing questions with new AI-generated content. Are you sure?" } do %>
+                    Regenerate
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% else %>
+      <div class="text-center py-12">
+        <div class="text-6xl mb-4">📝</div>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">No quizzes found</h3>
+        <p class="text-gray-600 mb-4">
+          <% if @selected_course %>
+            No quizzes have been generated for this course yet.
+          <% else %>
+            No quizzes have been generated yet.
+          <% end %>
+        </p>
+        <p class="text-sm text-gray-500">
+          Quizzes are automatically generated when you create full course content using the Course Generator.
+        </p>
+      </div>
+    <% end %>
+  </div>
+</div>

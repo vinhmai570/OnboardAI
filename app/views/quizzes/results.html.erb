@@ -1,0 +1,307 @@
+<% content_for :title, "Quiz Results - #{@quiz.title}" %>
+
+<div class="min-h-screen bg-gray-50">
+  <!-- Header -->
+  <div class="bg-white shadow-sm border-b">
+    <div class="max-w-4xl mx-auto px-4 py-6">
+      <nav class="flex items-center space-x-2 text-sm text-gray-500 mb-2">
+        <%= link_to @course.title, course_path(@course), class: "hover:text-gray-900" %>
+        <span>›</span>
+        <span><%= @course_step.course_module.title %></span>
+        <span>›</span>
+        <span><%= @course_step.title %></span>
+        <span>›</span>
+        <span>Results</span>
+      </nav>
+      <h1 class="text-2xl font-bold text-gray-900">Quiz Results</h1>
+    </div>
+  </div>
+
+  <div class="max-w-4xl mx-auto px-4 py-8">
+    <!-- Results Summary -->
+    <div class="bg-white rounded-lg shadow-sm p-8 mb-8">
+      <div class="text-center">
+        <!-- Score Display -->
+        <div class="mb-6">
+          <% if @completed_attempt.passed? %>
+            <div class="text-6xl mb-4">🎉</div>
+            <h2 class="text-3xl font-bold text-green-600 mb-2">Congratulations!</h2>
+            <p class="text-lg text-gray-600">You passed the quiz!</p>
+          <% else %>
+            <div class="text-6xl mb-4">📚</div>
+            <h2 class="text-3xl font-bold text-orange-600 mb-2">Keep Learning!</h2>
+            <p class="text-lg text-gray-600">You can retake this quiz to improve your score.</p>
+          <% end %>
+        </div>
+
+        <!-- Score Breakdown -->
+        <div class="bg-gray-50 rounded-lg p-6 mb-6">
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-6 text-center">
+            <div>
+              <div class="text-2xl font-bold text-blue-600">
+                <%= @completed_attempt.percentage_score.round(1) %>%
+              </div>
+              <div class="text-sm text-gray-600">Final Score</div>
+            </div>
+            <div>
+              <div class="text-2xl font-bold text-gray-900">
+                <%= @completed_attempt.score %>/<%= @completed_attempt.total_points %>
+              </div>
+              <div class="text-sm text-gray-600">Points Earned</div>
+            </div>
+            <div>
+              <div class="text-2xl font-bold text-green-600">
+                <%= @questions_with_responses.count { |q| q[:is_correct] } %>/<%= @questions_with_responses.count %>
+              </div>
+              <div class="text-sm text-gray-600">Correct Answers</div>
+            </div>
+            <div>
+              <div class="text-2xl font-bold text-purple-600">
+                <%= @completed_attempt.time_spent_minutes %>m
+              </div>
+              <div class="text-sm text-gray-600">Time Spent</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="mb-6">
+          <div class="flex justify-between text-sm text-gray-600 mb-2">
+            <span>Your Score</span>
+            <span>Passing Score (70%)</span>
+          </div>
+          <div class="relative w-full bg-gray-200 rounded-full h-4">
+            <div class="absolute top-0 left-0 h-4 rounded-full transition-all duration-1000 <%= @completed_attempt.passed? ? 'bg-green-500' : 'bg-orange-500' %>"
+                 style="width: <%= [@completed_attempt.percentage_score, 100].min %>%">
+            </div>
+            <!-- Passing threshold marker -->
+            <div class="absolute top-0 h-4 w-0.5 bg-gray-400" style="left: 70%"></div>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+          <%= link_to course_path(@course),
+                      class: "px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors" do %>
+            📚 Continue Course
+          <% end %>
+
+          <%= link_to quiz_path(@quiz),
+                      class: "px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors" do %>
+            🔄 Retake Quiz
+          <% end %>
+
+          <% if @all_user_attempts.count > 1 %>
+            <button class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                    onclick="document.getElementById('attempt-history').scrollIntoView({behavior: 'smooth'})">
+              📊 View All Attempts
+            </button>
+          <% end %>
+        </div>
+      </div>
+    </div>
+
+    <!-- Question Review -->
+    <div class="bg-white rounded-lg shadow-sm mb-8">
+      <div class="px-6 py-4 border-b bg-gray-50">
+        <h3 class="text-lg font-semibold text-gray-900">Question Review</h3>
+        <p class="text-sm text-gray-600">Review your answers and see the correct solutions</p>
+      </div>
+
+      <div class="p-6">
+        <% @questions_with_responses.each_with_index do |item, index| %>
+          <% question = item[:question] %>
+          <% response = item[:response] %>
+          <% is_correct = item[:is_correct] %>
+          <% user_answer = item[:user_answer] %>
+          <% correct_answer = item[:correct_answer] %>
+
+          <div class="mb-8 pb-8 <%= 'border-b border-gray-200' unless index == @questions_with_responses.count - 1 %>">
+            <!-- Question Header -->
+            <div class="flex items-start justify-between mb-4">
+              <div class="flex-1">
+                <div class="flex items-center space-x-3 mb-2">
+                  <span class="bg-gray-100 text-gray-800 text-sm font-medium px-2.5 py-0.5 rounded">
+                    Q<%= index + 1 %>
+                  </span>
+                  <span class="text-sm text-gray-500"><%= question.points %> points</span>
+                  <% if is_correct %>
+                    <span class="inline-flex items-center text-sm text-green-600">
+                      <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                      </svg>
+                      Correct
+                    </span>
+                  <% else %>
+                    <span class="inline-flex items-center text-sm text-red-600">
+                      <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                      </svg>
+                      Incorrect
+                    </span>
+                  <% end %>
+                  <span class="text-sm font-medium <%= is_correct ? 'text-green-600' : 'text-red-600' %>">
+                    <%= item[:points_earned] %>/<%= question.points %> pts
+                  </span>
+                </div>
+                <h4 class="text-lg font-medium text-gray-900 mb-3">
+                  <%= simple_format(question.question_text) %>
+                </h4>
+              </div>
+            </div>
+
+            <!-- Answer Review -->
+            <div class="ml-6 space-y-4">
+              <!-- User's Answer -->
+              <div class="p-4 <%= is_correct ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200' %> rounded-lg">
+                <div class="flex items-center mb-2">
+                  <span class="text-sm font-medium <%= is_correct ? 'text-green-800' : 'text-red-800' %>">
+                    Your Answer:
+                  </span>
+                </div>
+                <div class="<%= is_correct ? 'text-green-700' : 'text-red-700' %>">
+                  <% if user_answer.present? %>
+                    <%= simple_format(user_answer) %>
+                  <% else %>
+                    <em>No answer provided</em>
+                  <% end %>
+                </div>
+              </div>
+
+              <!-- Correct Answer (if different from user's answer) -->
+              <% unless is_correct %>
+                <div class="p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <div class="flex items-center mb-2">
+                    <span class="text-sm font-medium text-green-800">Correct Answer:</span>
+                  </div>
+                  <div class="text-green-700">
+                    <%= simple_format(correct_answer) %>
+                  </div>
+                </div>
+              <% end %>
+
+              <!-- Explanation (if available) -->
+              <% if question.explanation.present? %>
+                <div class="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div class="flex items-center mb-2">
+                    <svg class="w-4 h-4 mr-1 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <span class="text-sm font-medium text-blue-800">Explanation:</span>
+                  </div>
+                  <div class="text-blue-700">
+                    <%= simple_format(question.explanation) %>
+                  </div>
+                </div>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+    <!-- Attempt History -->
+    <% if @all_user_attempts.count > 1 %>
+      <div class="bg-white rounded-lg shadow-sm" id="attempt-history">
+        <div class="px-6 py-4 border-b bg-gray-50">
+          <h3 class="text-lg font-semibold text-gray-900">Your Attempt History</h3>
+          <p class="text-sm text-gray-600">All your previous attempts at this quiz</p>
+        </div>
+
+        <div class="p-6">
+          <div class="space-y-4">
+            <% @all_user_attempts.each_with_index do |attempt, index| %>
+              <div class="flex items-center justify-between p-4 <%= attempt == @completed_attempt ? 'bg-blue-50 border-2 border-blue-200' : 'bg-gray-50 border border-gray-200' %> rounded-lg">
+                <div class="flex items-center space-x-4">
+                  <div class="text-sm text-gray-500">
+                    Attempt #<%= @all_user_attempts.count - index %>
+                  </div>
+                  <div class="text-sm text-gray-600">
+                    <%= attempt.completed_at.strftime("%b %d, %Y at %I:%M %p") %>
+                  </div>
+                  <% if attempt == @completed_attempt %>
+                    <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">Current</span>
+                  <% end %>
+                </div>
+
+                <div class="flex items-center space-x-4">
+                  <div class="text-sm">
+                    <span class="font-medium <%= attempt.passed? ? 'text-green-600' : 'text-orange-600' %>">
+                      <%= attempt.percentage_score.round(1) %>%
+                    </span>
+                    <span class="text-gray-500">
+                      (<%= attempt.score %>/<%= attempt.total_points %> pts)
+                    </span>
+                  </div>
+                  <div class="text-xs text-gray-500">
+                    <%= attempt.time_spent_minutes %>m
+                  </div>
+                  <% if attempt.passed? %>
+                    <span class="text-green-600">✓</span>
+                  <% else %>
+                    <span class="text-orange-600">○</span>
+                  <% end %>
+                </div>
+              </div>
+            <% end %>
+          </div>
+
+          <!-- Summary Stats -->
+          <div class="mt-6 pt-6 border-t border-gray-200">
+            <div class="grid grid-cols-3 gap-4 text-center text-sm">
+              <div>
+                <div class="font-semibold text-gray-900">
+                  <%= @all_user_attempts.maximum('score::float / total_points::float * 100')&.round(1) || 0 %>%
+                </div>
+                <div class="text-gray-600">Best Score</div>
+              </div>
+              <div>
+                <div class="font-semibold text-gray-900">
+                  <%= @all_user_attempts.average('score::float / total_points::float * 100')&.round(1) || 0 %>%
+                </div>
+                <div class="text-gray-600">Average Score</div>
+              </div>
+              <div>
+                <div class="font-semibold text-gray-900">
+                  <%= @all_user_attempts.count %>
+                </div>
+                <div class="text-gray-600">Total Attempts</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<!-- Auto-scroll to results on page load with animation -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Animate score counter
+  const scoreElement = document.querySelector('.text-3xl.font-bold.text-green-600, .text-3xl.font-bold.text-orange-600');
+  if (scoreElement && scoreElement.textContent.includes('%')) {
+    const finalScore = parseFloat('<%= @completed_attempt.percentage_score %>');
+    let currentScore = 0;
+    const increment = finalScore / 50; // 50 steps for smooth animation
+
+    const timer = setInterval(() => {
+      currentScore += increment;
+      if (currentScore >= finalScore) {
+        currentScore = finalScore;
+        clearInterval(timer);
+      }
+      scoreElement.textContent = currentScore.toFixed(1) + '%';
+    }, 30);
+  }
+
+  // Animate progress bar
+  const progressBar = document.querySelector('[style*="width:"]');
+  if (progressBar) {
+    progressBar.style.width = '0%';
+    setTimeout(() => {
+      progressBar.style.width = '<%= [@completed_attempt.percentage_score, 100].min %>%';
+    }, 500);
+  }
+});
+</script>

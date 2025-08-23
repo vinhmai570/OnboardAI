@@ -26,6 +26,10 @@ class Course < ApplicationRecord
     !published?
   end
 
+  def status
+    published? ? 'published' : 'draft'
+  end
+
   def total_modules
     course_modules.count
   end
@@ -62,5 +66,15 @@ class Course < ApplicationRecord
 
   def quiz_count
     course_steps.where(step_type: 'assessment').count
+  end
+
+  def description
+    # Return the prompt as description, but make it more user-friendly
+    # Remove any system-specific instructions and keep it concise
+    return nil if prompt.blank?
+
+    # For now, just return the prompt - could be enhanced to extract
+    # description from structure JSON or other fields
+    prompt
   end
 end

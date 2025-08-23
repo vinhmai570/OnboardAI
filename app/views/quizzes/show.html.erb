@@ -1,0 +1,421 @@
+<% content_for :title, @quiz.title %>
+
+<div class="min-h-screen bg-gray-50">
+  <!-- Header -->
+  <div class="bg-white shadow-sm border-b">
+    <div class="max-w-4xl mx-auto px-4 py-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <nav class="flex items-center space-x-2 text-sm text-gray-500 mb-2">
+            <%= link_to @course.title, course_path(@course), class: "hover:text-gray-900" %>
+            <span>›</span>
+            <span><%= @course_module.title %></span>
+            <span>›</span>
+            <span><%= @course_step.title %></span>
+          </nav>
+          <h1 class="text-2xl font-bold text-gray-900"><%= @quiz.title %></h1>
+          <% if @quiz.description.present? %>
+            <p class="text-gray-600 mt-1"><%= @quiz.description %></p>
+          <% end %>
+        </div>
+
+        <div class="text-right">
+          <div class="flex items-center space-x-4 text-sm text-gray-500">
+            <span>📊 <%= @quiz.total_points %> points</span>
+            <% if @quiz.time_limit_minutes %>
+              <span>⏱️ <%= @quiz.time_limit_minutes %> minutes</span>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="max-w-4xl mx-auto px-4 py-8">
+    <% if @current_attempt %>
+      <!-- Active Quiz Taking Interface -->
+      <div class="bg-white rounded-lg shadow-sm" id="quiz-container">
+        <!-- Quiz Progress Bar -->
+        <div class="bg-gray-50 px-6 py-4 border-b">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-sm font-medium text-gray-700">Progress</span>
+            <span class="text-sm text-gray-500" id="progress-text" data-quiz-target="progressText">
+              <%= @responses.count %> of <%= @questions.count %> questions answered
+            </span>
+          </div>
+                      <div class="w-full bg-gray-200 rounded-full h-2">
+              <div class="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                   id="progress-bar"
+                   data-quiz-target="progressBar"
+                   style="width: <%= (@responses.count.to_f / @questions.count * 100).round(2) %>%">
+              </div>
+            </div>
+        </div>
+
+        <!-- Timer (if applicable) -->
+        <% if @quiz.time_limit_minutes && @current_attempt.remaining_time_minutes > 0 %>
+          <div class="bg-yellow-50 border-b border-yellow-200 px-6 py-3">
+            <div class="flex items-center justify-between">
+              <span class="text-sm font-medium text-yellow-800">Time Remaining:</span>
+              <span class="text-lg font-bold text-yellow-900" id="timer" data-quiz-target="timer">
+                <%= @current_attempt.remaining_time_minutes %> minutes
+              </span>
+            </div>
+          </div>
+        <% end %>
+
+        <!-- Quiz Form -->
+        <%= form_with url: submit_quiz_path(@quiz), method: :patch, local: false, id: "quiz-form", class: "quiz-form",
+                      data: {
+                        controller: "quiz",
+                        quiz_total_questions_value: @questions.count,
+                        quiz_time_limit_value: @quiz.time_limit_minutes || 0,
+                        quiz_remaining_time_value: @current_attempt.remaining_time_minutes || 0,
+                        quiz_quiz_id_value: @quiz.id
+                      } do |form| %>
+          <div class="p-6">
+            <% @questions.each_with_index do |question, index| %>
+              <div class="mb-8 question-block" data-question-id="<%= question.id %>" id="question-<%= question.id %>">
+                <!-- Question Header -->
+                <div class="flex items-start justify-between mb-4">
+                  <div class="flex-1">
+                    <div class="flex items-center space-x-2 mb-2">
+                      <span class="bg-gray-100 text-gray-800 text-sm font-medium px-2.5 py-0.5 rounded">
+                        Q<%= index + 1 %>
+                      </span>
+                      <span class="text-sm text-gray-500"><%= question.points %> points</span>
+                      <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                        <%= question.question_type.humanize %>
+                      </span>
+                    </div>
+                    <h3 class="text-lg font-medium text-gray-900 leading-relaxed">
+                      <%= simple_format(question.question_text) %>
+                    </h3>
+                  </div>
+                </div>
+
+                <!-- Answer Options -->
+                <div class="ml-6">
+                  <% case question.question_type %>
+                  <% when 'multiple_choice' %>
+                    <div class="space-y-3">
+                      <% question.quiz_question_options.ordered.each do |option| %>
+                        <label class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
+                          <%= form.radio_button "questions[#{question.id}][selected_option_id]", option.id,
+                                                 checked: @response_by_question[question.id]&.quiz_question_option_id == option.id,
+                                                 class: "sr-only peer" %>
+                          <div class="w-4 h-4 border-2 border-gray-300 rounded-full mr-3 peer-checked:border-blue-600 peer-checked:bg-blue-600 flex items-center justify-center">
+                            <div class="w-2 h-2 bg-white rounded-full opacity-0 peer-checked:opacity-100"></div>
+                          </div>
+                          <span class="text-gray-900"><%= simple_format(option.option_text) %></span>
+                        </label>
+                      <% end %>
+                    </div>
+
+                  <% when 'true_false' %>
+                    <div class="space-y-3">
+                      <% question.quiz_question_options.ordered.each do |option| %>
+                        <label class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
+                          <%= form.radio_button "questions[#{question.id}][selected_option_id]", option.id,
+                                                 checked: @response_by_question[question.id]&.quiz_question_option_id == option.id,
+                                                 class: "sr-only peer" %>
+                          <div class="w-4 h-4 border-2 border-gray-300 rounded-full mr-3 peer-checked:border-blue-600 peer-checked:bg-blue-600 flex items-center justify-center">
+                            <div class="w-2 h-2 bg-white rounded-full opacity-0 peer-checked:opacity-100"></div>
+                          </div>
+                          <span class="text-gray-900 font-medium"><%= option.option_text %></span>
+                        </label>
+                      <% end %>
+                    </div>
+
+                  <% when 'short_answer' %>
+                    <div class="mt-3">
+                      <%= form.text_area "questions[#{question.id}][answer_text]",
+                                          value: @response_by_question[question.id]&.response_text,
+                                          placeholder: "Enter your answer here...",
+                                          rows: 4,
+                                          class: "w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-vertical" %>
+                    </div>
+                  <% end %>
+                </div>
+
+                <!-- Question Status Indicator -->
+                <div class="ml-6 mt-3">
+                  <% if @response_by_question[question.id] %>
+                    <span class="inline-flex items-center text-sm text-green-600">
+                      <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                      </svg>
+                      Answered
+                    </span>
+                  <% else %>
+                    <span class="inline-flex items-center text-sm text-gray-400">
+                      <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                      </svg>
+                      Not answered
+                    </span>
+                  <% end %>
+                </div>
+              </div>
+            <% end %>
+
+            <!-- Submit Section -->
+            <div class="border-t pt-6 mt-8">
+              <div class="flex items-center justify-between">
+                <div class="text-sm text-gray-600">
+                  <span id="answered-count" data-quiz-target="answeredCount"><%= @responses.count %></span> of <%= @questions.count %> questions answered
+                </div>
+
+                <div class="space-x-3">
+                  <!-- Save Progress Button -->
+                  <button type="button"
+                          class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                          id="save-progress-btn"
+                          data-quiz-target="saveBtn"
+                          data-action="click->quiz#save">
+                    💾 Save Progress
+                  </button>
+
+                  <!-- Submit Quiz Button -->
+                  <%= form.submit "Submit Quiz",
+                                  class: "px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors",
+                                  id: "submit-quiz-btn",
+                                  data: {
+                                    quiz_target: "submitBtn",
+                                    confirm: "Are you sure you want to submit your quiz? You won't be able to change your answers after submission."
+                                  } %>
+                </div>
+              </div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+
+    <% else %>
+      <!-- Quiz Introduction Screen -->
+      <div class="bg-white rounded-lg shadow-sm p-8">
+        <div class="text-center mb-8">
+          <div class="text-6xl mb-4">📝</div>
+          <h2 class="text-2xl font-bold text-gray-900 mb-2">Ready to Start the Quiz?</h2>
+          <p class="text-gray-600 max-w-2xl mx-auto">
+            This quiz will test your understanding of the concepts covered in this module.
+            Take your time and read each question carefully.
+          </p>
+        </div>
+
+        <!-- Quiz Information -->
+        <div class="bg-gray-50 rounded-lg p-6 mb-8">
+          <h3 class="font-semibold text-gray-900 mb-4">Quiz Details</h3>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+            <div class="flex items-center">
+              <span class="text-blue-600 mr-2">📊</span>
+              <span><strong><%= @quiz.question_count %></strong> questions</span>
+            </div>
+            <div class="flex items-center">
+              <span class="text-green-600 mr-2">🎯</span>
+              <span><strong><%= @quiz.total_points %></strong> total points</span>
+            </div>
+            <div class="flex items-center">
+              <span class="text-orange-600 mr-2">⏱️</span>
+              <span>
+                <% if @quiz.time_limit_minutes %>
+                  <strong><%= @quiz.time_limit_minutes %></strong> minute time limit
+                <% else %>
+                  No time limit
+                <% end %>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Previous Attempts (if any) -->
+        <% if @user_attempts.any? %>
+          <div class="mb-8">
+            <h3 class="font-semibold text-gray-900 mb-4">Your Previous Attempts</h3>
+            <div class="space-y-3">
+              <% @user_attempts.each do |attempt| %>
+                <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                  <div>
+                    <span class="text-sm text-gray-600">
+                      <%= time_ago_in_words(attempt.completed_at) %> ago
+                    </span>
+                    <% if attempt.completed? %>
+                      <span class="ml-2 text-sm">
+                        Score: <strong><%= attempt.percentage_score.round(1) %>%</strong>
+                        <% if attempt.passed? %>
+                          <span class="text-green-600">✓ Passed</span>
+                        <% else %>
+                          <span class="text-red-600">✗ Not Passed</span>
+                        <% end %>
+                      </span>
+                    <% end %>
+                  </div>
+                  <% if attempt.completed? %>
+                    <%= link_to "View Results", results_quiz_path(@quiz),
+                                class: "text-blue-600 hover:text-blue-800 text-sm" %>
+                  <% end %>
+                </div>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+
+        <!-- Best Score (if any) -->
+        <% if @best_attempt %>
+          <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-8">
+            <div class="flex items-center">
+              <span class="text-green-600 text-2xl mr-3">🏆</span>
+              <div>
+                <h4 class="font-semibold text-green-900">Your Best Score</h4>
+                <p class="text-green-700">
+                  <strong><%= @best_attempt.percentage_score.round(1) %>%</strong>
+                  (<%= @best_attempt.score %>/<%= @best_attempt.total_points %> points)
+                </p>
+              </div>
+            </div>
+          </div>
+        <% end %>
+
+        <!-- Start Quiz Button -->
+        <div class="text-center">
+          <%= link_to start_quiz_path(@quiz),
+                      method: :post,
+                      class: "inline-flex items-center px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors" do %>
+            <span class="mr-2">🚀</span>
+            Start Quiz
+          <% end %>
+        </div>
+
+        <!-- Instructions -->
+        <div class="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <h4 class="font-semibold text-blue-900 mb-2">Instructions</h4>
+          <ul class="text-sm text-blue-800 space-y-1">
+            <li>• Answer all questions to the best of your ability</li>
+            <li>• You can save your progress and return later if needed</li>
+            <li>• Once submitted, you cannot change your answers</li>
+            <% if @quiz.time_limit_minutes %>
+              <li>• Complete the quiz within <%= @quiz.time_limit_minutes %> minutes</li>
+            <% end %>
+            <li>• A passing score is 70% or higher</li>
+          </ul>
+        </div>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<!-- Quiz JavaScript -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const quizForm = document.getElementById('quiz-form');
+  const progressBar = document.getElementById('progress-bar');
+  const progressText = document.getElementById('progress-text');
+  const answeredCountSpan = document.getElementById('answered-count');
+  const submitBtn = document.getElementById('submit-quiz-btn');
+  const saveProgressBtn = document.getElementById('save-progress-btn');
+  const timerElement = document.getElementById('timer');
+
+  <% if @current_attempt %>
+    let totalQuestions = <%= @questions.count %>;
+    let timeLimit = <%= @quiz.time_limit_minutes || 0 %>;
+    let remainingTime = <%= @current_attempt.remaining_time_minutes || 0 %>;
+
+    // Update progress when answers change
+    function updateProgress() {
+      const answeredQuestions = document.querySelectorAll('input[type="radio"]:checked, textarea:not(:empty)').length;
+      const percentage = (answeredQuestions / totalQuestions) * 100;
+
+      if (progressBar) {
+        progressBar.style.width = percentage + '%';
+      }
+
+      if (progressText) {
+        progressText.textContent = `${answeredQuestions} of ${totalQuestions} questions answered`;
+      }
+
+      if (answeredCountSpan) {
+        answeredCountSpan.textContent = answeredQuestions;
+      }
+
+      // Update submit button state
+      if (submitBtn) {
+        if (answeredQuestions === totalQuestions) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Submit Quiz';
+        } else {
+          submitBtn.disabled = false; // Allow partial submission
+          submitBtn.textContent = `Submit Quiz (${totalQuestions - answeredQuestions} unanswered)`;
+        }
+      }
+    }
+
+    // Timer functionality
+    <% if @quiz.time_limit_minutes && @current_attempt.remaining_time_minutes > 0 %>
+      function updateTimer() {
+        if (remainingTime > 0) {
+          const hours = Math.floor(remainingTime / 60);
+          const minutes = remainingTime % 60;
+
+          if (timerElement) {
+            if (hours > 0) {
+              timerElement.textContent = `${hours}h ${minutes}m`;
+            } else {
+              timerElement.textContent = `${minutes}m`;
+
+              // Warning when under 5 minutes
+              if (remainingTime <= 5) {
+                timerElement.parentElement.parentElement.classList.remove('bg-yellow-50', 'border-yellow-200');
+                timerElement.parentElement.parentElement.classList.add('bg-red-50', 'border-red-200');
+                timerElement.classList.remove('text-yellow-900');
+                timerElement.classList.add('text-red-900');
+              }
+            }
+          }
+
+          remainingTime--;
+        } else {
+          // Time's up - auto submit
+          if (quizForm) {
+            alert('Time is up! Your quiz will be submitted automatically.');
+            quizForm.submit();
+          }
+        }
+      }
+
+      // Update timer every minute
+      setInterval(updateTimer, 60000);
+    <% end %>
+
+    // Auto-save progress periodically
+    function saveProgress() {
+      if (saveProgressBtn) {
+        saveProgressBtn.textContent = '💾 Saving...';
+        saveProgressBtn.disabled = true;
+
+        // In a real implementation, you'd send an AJAX request here
+        setTimeout(() => {
+          saveProgressBtn.textContent = '💾 Saved';
+          setTimeout(() => {
+            saveProgressBtn.textContent = '💾 Save Progress';
+            saveProgressBtn.disabled = false;
+          }, 2000);
+        }, 1000);
+      }
+    }
+
+    // Event listeners
+    document.addEventListener('change', updateProgress);
+    document.addEventListener('input', updateProgress);
+
+    if (saveProgressBtn) {
+      saveProgressBtn.addEventListener('click', saveProgress);
+    }
+
+    // Initial progress update
+    updateProgress();
+
+    // Auto-save every 2 minutes
+    setInterval(saveProgress, 120000);
+  <% end %>
+});
+</script>

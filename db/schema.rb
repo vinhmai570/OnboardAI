@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_08_23_083033) do
+ActiveRecord::Schema[8.0].define(version: 2025_08_23_150929) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "vector"
@@ -136,6 +136,68 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_23_083033) do
     t.index ["user_id"], name: "index_progresses_on_user_id"
   end
 
+  create_table "quiz_attempts", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.bigint "quiz_id", null: false
+    t.datetime "started_at"
+    t.datetime "completed_at"
+    t.integer "score"
+    t.integer "total_points"
+    t.integer "time_spent_minutes"
+    t.string "status"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["quiz_id"], name: "index_quiz_attempts_on_quiz_id"
+    t.index ["user_id"], name: "index_quiz_attempts_on_user_id"
+  end
+
+  create_table "quiz_question_options", force: :cascade do |t|
+    t.bigint "quiz_question_id", null: false
+    t.text "option_text"
+    t.boolean "is_correct"
+    t.integer "order_position"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["quiz_question_id"], name: "index_quiz_question_options_on_quiz_question_id"
+  end
+
+  create_table "quiz_questions", force: :cascade do |t|
+    t.bigint "quiz_id", null: false
+    t.text "question_text"
+    t.string "question_type"
+    t.integer "points"
+    t.integer "order_position"
+    t.text "explanation"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["quiz_id"], name: "index_quiz_questions_on_quiz_id"
+  end
+
+  create_table "quiz_responses", force: :cascade do |t|
+    t.bigint "quiz_attempt_id", null: false
+    t.bigint "quiz_question_id", null: false
+    t.bigint "quiz_question_option_id"
+    t.text "response_text"
+    t.boolean "is_correct"
+    t.integer "points_earned"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["quiz_attempt_id"], name: "index_quiz_responses_on_quiz_attempt_id"
+    t.index ["quiz_question_id"], name: "index_quiz_responses_on_quiz_question_id"
+    t.index ["quiz_question_option_id"], name: "index_quiz_responses_on_quiz_question_option_id"
+  end
+
+  create_table "quizzes", force: :cascade do |t|
+    t.bigint "course_step_id", null: false
+    t.string "title"
+    t.text "description"
+    t.integer "total_points"
+    t.integer "time_limit_minutes"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["course_step_id"], name: "index_quizzes_on_course_step_id"
+  end
+
   create_table "steps", force: :cascade do |t|
     t.bigint "course_id", null: false
     t.integer "order"
@@ -144,6 +206,19 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_23_083033) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["course_id"], name: "index_steps_on_course_id"
+  end
+
+  create_table "user_progresses", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.bigint "course_step_id", null: false
+    t.string "status"
+    t.datetime "started_at"
+    t.datetime "completed_at"
+    t.integer "score"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["course_step_id"], name: "index_user_progresses_on_course_step_id"
+    t.index ["user_id"], name: "index_user_progresses_on_user_id"
   end
 
   create_table "users", force: :cascade do |t|
@@ -166,5 +241,15 @@ ActiveRecord::Schema[8.0].define(version: 2025_08_23_083033) do
   add_foreign_key "documents", "users"
   add_foreign_key "progresses", "courses"
   add_foreign_key "progresses", "users"
+  add_foreign_key "quiz_attempts", "quizzes"
+  add_foreign_key "quiz_attempts", "users"
+  add_foreign_key "quiz_question_options", "quiz_questions"
+  add_foreign_key "quiz_questions", "quizzes"
+  add_foreign_key "quiz_responses", "quiz_attempts"
+  add_foreign_key "quiz_responses", "quiz_question_options"
+  add_foreign_key "quiz_responses", "quiz_questions"
+  add_foreign_key "quizzes", "course_steps"
   add_foreign_key "steps", "courses"
+  add_foreign_key "user_progresses", "course_steps"
+  add_foreign_key "user_progresses", "users"
 end

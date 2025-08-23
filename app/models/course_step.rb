@@ -1,5 +1,7 @@
 class CourseStep < ApplicationRecord
   belongs_to :course_module
+  has_one :quiz, dependent: :destroy
+  has_many :user_progresses, dependent: :destroy
 
   validates :title, presence: true
   validates :step_type, presence: true, inclusion: { in: %w[lesson exercise assessment reading] }
@@ -45,6 +47,28 @@ class CourseStep < ApplicationRecord
 
   def resources=(value)
     super(value.is_a?(Array) ? value.to_json : value)
+  end
+
+  def has_quiz?
+    quiz.present?
+  end
+
+  def quiz_completed_by?(user)
+    return false unless has_quiz?
+    quiz.user_completed?(user)
+  end
+
+  def progress_for_user(user)
+    user_progresses.find_by(user: user)
+  end
+
+  def completed_by?(user)
+    progress_for_user(user)&.completed?
+  end
+
+  def started_by?(user)
+    progress = progress_for_user(user)
+    progress&.in_progress? || progress&.completed?
   end
 
   def move_up

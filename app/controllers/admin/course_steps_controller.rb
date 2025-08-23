@@ -2,6 +2,7 @@ class Admin::CourseStepsController < ApplicationController
   before_action :require_admin
   before_action :set_course_and_module
   before_action :set_course_step, only: [:edit, :update, :destroy, :move_up, :move_down]
+  before_action :set_course_step_simple, only: [:quiz_check]
 
   def index
     @course_steps = @course_module.course_steps.ordered
@@ -68,6 +69,29 @@ class Admin::CourseStepsController < ApplicationController
     end
   end
 
+  def quiz_check
+    quiz = @course_step.quiz
+
+    respond_to do |format|
+      format.json do
+        if quiz
+          render json: {
+            has_quiz: true,
+            quiz_id: quiz.id,
+            quiz_title: quiz.title,
+            question_count: quiz.quiz_questions.count
+          }
+        else
+          render json: {
+            has_quiz: false,
+            step_type: @course_step.step_type,
+            step_title: @course_step.title
+          }
+        end
+      end
+    end
+  end
+
   private
 
   def set_course_and_module
@@ -77,6 +101,10 @@ class Admin::CourseStepsController < ApplicationController
 
   def set_course_step
     @course_step = @course_module.course_steps.find(params[:id])
+  end
+
+  def set_course_step_simple
+    @course_step = CourseStep.find(params[:id])
   end
 
   def course_step_params

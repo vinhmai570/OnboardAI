@@ -1,0 +1,238 @@
+<% content_for :title, "My Learning Progress" %>
+
+<div class="min-h-screen bg-gray-50">
+  <!-- Header -->
+  <div class="bg-white shadow-sm border-b">
+    <div class="max-w-6xl mx-auto px-4 py-6">
+      <h1 class="text-2xl font-bold text-gray-900">My Learning Progress</h1>
+      <p class="text-gray-600 mt-1">Track your course completion and quiz performance</p>
+    </div>
+  </div>
+
+  <div class="max-w-6xl mx-auto px-4 py-8">
+    <!-- Overall Statistics -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+      <div class="bg-white rounded-lg shadow-sm p-6">
+        <div class="flex items-center">
+          <div class="flex-shrink-0">
+            <div class="flex items-center justify-center h-10 w-10 bg-blue-500 rounded-md">
+              <span class="text-white font-bold">📚</span>
+            </div>
+          </div>
+          <div class="ml-4">
+            <div class="text-2xl font-bold text-gray-900">
+              <%= @overall_stats[:courses_enrolled] %>
+            </div>
+            <div class="text-sm text-gray-600">Courses Enrolled</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow-sm p-6">
+        <div class="flex items-center">
+          <div class="flex-shrink-0">
+            <div class="flex items-center justify-center h-10 w-10 bg-green-500 rounded-md">
+              <span class="text-white font-bold">✓</span>
+            </div>
+          </div>
+          <div class="ml-4">
+            <div class="text-2xl font-bold text-gray-900">
+              <%= @overall_stats[:courses_completed] %>
+            </div>
+            <div class="text-sm text-gray-600">Courses Completed</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow-sm p-6">
+        <div class="flex items-center">
+          <div class="flex-shrink-0">
+            <div class="flex items-center justify-center h-10 w-10 bg-purple-500 rounded-md">
+              <span class="text-white font-bold">📝</span>
+            </div>
+          </div>
+          <div class="ml-4">
+            <div class="text-2xl font-bold text-gray-900">
+              <%= @overall_stats[:avg_quiz_score].round(1) %>%
+            </div>
+            <div class="text-sm text-gray-600">Avg Quiz Score</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow-sm p-6">
+        <div class="flex items-center">
+          <div class="flex-shrink-0">
+            <div class="flex items-center justify-center h-10 w-10 bg-orange-500 rounded-md">
+              <span class="text-white font-bold">⏱️</span>
+            </div>
+          </div>
+          <div class="ml-4">
+            <div class="text-2xl font-bold text-gray-900">
+              <%= @overall_stats[:total_time_spent_hours].round(1) %>h
+            </div>
+            <div class="text-sm text-gray-600">Time Spent Learning</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Course Progress -->
+    <div class="bg-white rounded-lg shadow-sm">
+      <div class="px-6 py-4 border-b bg-gray-50">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-lg font-semibold text-gray-900">Course Progress</h2>
+            <p class="text-sm text-gray-600">Your progress in enrolled courses</p>
+          </div>
+
+          <% if @overall_stats[:completion_rate] > 0 %>
+            <div class="text-right">
+              <div class="text-2xl font-bold text-green-600">
+                <%= @overall_stats[:completion_rate].round(1) %>%
+              </div>
+              <div class="text-sm text-gray-600">Overall Completion</div>
+            </div>
+          <% end %>
+        </div>
+      </div>
+
+      <div class="p-6">
+        <% if @user_courses.any? %>
+          <div class="space-y-6">
+            <% @user_courses.each do |course_data| %>
+              <% course = course_data[:course] %>
+              <div class="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
+                <!-- Course Header -->
+                <div class="flex items-center justify-between mb-4">
+                  <div class="flex-1">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-1">
+                      <%= link_to course.title, course_progress_progress_index_path(course_id: course.id),
+                                  class: "hover:text-blue-600" %>
+                    </h3>
+                    <p class="text-gray-600 text-sm">
+                      <%= course.description %>
+                    </p>
+                  </div>
+
+                  <div class="ml-6 text-right">
+                    <div class="text-2xl font-bold <%= course_data[:progress_percentage] >= 100 ? 'text-green-600' : 'text-blue-600' %>">
+                      <%= course_data[:progress_percentage].round(1) %>%
+                    </div>
+                    <div class="text-sm text-gray-600">Complete</div>
+                  </div>
+                </div>
+
+                <!-- Progress Bar -->
+                <div class="mb-4">
+                  <div class="flex justify-between text-sm text-gray-600 mb-2">
+                    <span>Progress</span>
+                    <span><%= course_data[:completed_steps] %>/<%= course_data[:total_steps] %> steps</span>
+                  </div>
+                  <div class="w-full bg-gray-200 rounded-full h-2">
+                    <div class="<%= course_data[:progress_percentage] >= 100 ? 'bg-green-500' : 'bg-blue-600' %> h-2 rounded-full transition-all duration-500"
+                         style="width: <%= [course_data[:progress_percentage], 100].min %>%">
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Course Stats -->
+                <div class="grid grid-cols-3 gap-4 text-center">
+                  <div>
+                    <div class="text-lg font-semibold text-gray-900">
+                      <%= course_data[:completed_steps] %>/<%= course_data[:total_steps] %>
+                    </div>
+                    <div class="text-xs text-gray-600">Steps Completed</div>
+                  </div>
+
+                  <div>
+                    <div class="text-lg font-semibold text-gray-900">
+                      <%= course_data[:quiz_completion_rate].round(1) %>%
+                    </div>
+                    <div class="text-xs text-gray-600">Quiz Completion</div>
+                  </div>
+
+                  <div>
+                    <div class="text-lg font-semibold text-gray-900">
+                      <% if course_data[:last_activity] %>
+                        <%= time_ago_in_words(course_data[:last_activity]) %> ago
+                      <% else %>
+                        Never
+                      <% end %>
+                    </div>
+                    <div class="text-xs text-gray-600">Last Activity</div>
+                  </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex justify-between items-center mt-6 pt-4 border-t border-gray-100">
+                  <div class="space-x-2">
+                    <%= link_to course_path(course),
+                                class: "inline-flex items-center px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700" do %>
+                      📚 Continue Learning
+                    <% end %>
+
+                    <%= link_to course_progress_progress_index_path(course_id: course.id),
+                                class: "inline-flex items-center px-3 py-1.5 text-sm border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50" do %>
+                      📊 View Details
+                    <% end %>
+                  </div>
+
+                  <% if course_data[:progress_percentage] >= 100 %>
+                    <div class="flex items-center text-sm text-green-600">
+                      <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                      </svg>
+                      Completed!
+                    </div>
+                  <% elsif course_data[:progress_percentage] > 0 %>
+                    <div class="flex items-center text-sm text-blue-600">
+                      <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                      </svg>
+                      In Progress
+                    </div>
+                  <% else %>
+                    <div class="flex items-center text-sm text-gray-600">
+                      <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                      </svg>
+                      Not Started
+                    </div>
+                  <% end %>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        <% else %>
+          <div class="text-center py-12">
+            <div class="text-6xl mb-4">📚</div>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">No courses started yet</h3>
+            <p class="text-gray-600 mb-6">
+              You haven't started any courses yet. Browse available courses to begin your learning journey!
+            </p>
+            <%= link_to courses_path,
+                        class: "inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700" do %>
+              🔍 Browse Courses
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Auto-update progress bars with animation -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Animate progress bars
+  const progressBars = document.querySelectorAll('[style*="width:"]');
+  progressBars.forEach(bar => {
+    const finalWidth = bar.style.width;
+    bar.style.width = '0%';
+    setTimeout(() => {
+      bar.style.width = finalWidth;
+    }, 300);
+  });
+});
+</script>

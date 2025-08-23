@@ -60,12 +60,19 @@ class GenerateFullCourseJob < ApplicationJob
       generated_steps = @course.course_steps.where(content_generated: true).count
       generated_items = generated_modules + generated_steps
 
+      # Count quiz questions for better reporting
+      total_quiz_questions = Quiz.joins(:course_step => {:course_module => :course})
+                                 .where(courses: {id: @course.id})
+                                 .joins(:quiz_questions)
+                                 .count
+
       Rails.logger.info "Content generation summary:"
       Rails.logger.info "  Documents used: #{@document_context[:documents].count} (#{@document_context[:chunks].count} chunks)"
       Rails.logger.info "  Modules: #{generated_modules}/#{@course_modules.count} generated"
       Rails.logger.info "  Steps: #{generated_steps}/#{@course.course_steps.count} generated"
       Rails.logger.info "  Total items: #{generated_items}/#{total_items} generated"
       Rails.logger.info "  Quiz steps created: #{@course.course_steps.where(step_type: 'assessment').count}"
+      Rails.logger.info "  Quiz questions created: #{total_quiz_questions}"
 
       # Mark course as having full content generated only if everything succeeded
       if generated_items >= total_items * 0.8  # At least 80% success rate
@@ -208,33 +215,128 @@ class GenerateFullCourseJob < ApplicationJob
   end
 
   def generate_module_quiz(course_module)
-    # Generate a comprehensive quiz for the module
-    prompt = build_module_quiz_prompt(course_module)
+    # Generate a comprehensive quiz for the module using structured JSON
+    Rails.logger.info "  → Generating structured quiz for module #{course_module.title}..."
 
-    response = OpenaiService.generate_content(prompt)
-    if response && response['choices'] && response['choices'][0]
-      quiz_content = response['choices'][0]['message']['content']
+    quiz_data = OpenaiService.generate_quiz_json(course_module, @document_context[:chunks])
+
+    if quiz_data && quiz_data['quiz']
+      quiz_info = quiz_data['quiz']
 
       # Create a quiz step at the end of the module
       quiz_step = course_module.course_steps.create!(
-        title: "📝 Module #{course_module.order_position} Quiz",
+        title: quiz_info['title'] || "📝 Module #{course_module.order_position} Quiz",
         step_type: 'assessment',
-        duration_minutes: 15,
+        duration_minutes: quiz_info['time_limit_minutes'] || 15,
         content: "Complete this quiz to test your understanding of the module concepts.",
-        detailed_content: quiz_content,
+        detailed_content: quiz_info['description'] || "Quiz covering key concepts from this module.",
         content_generated: true,
         order_position: course_module.course_steps.maximum(:order_position).to_i + 1
       )
 
-      Rails.logger.info "      ✅ Module quiz created: #{quiz_step.title} (#{quiz_content.length} characters)"
-      return true
+      # Create the quiz record
+      quiz = Quiz.create!(
+        course_step: quiz_step,
+        title: quiz_info['title'] || "Module #{course_module.order_position} Quiz",
+        description: quiz_info['description'],
+        total_points: quiz_info['total_points'] || 100,
+        time_limit_minutes: quiz_info['time_limit_minutes'] || 15
+      )
+
+      # Create quiz questions and options
+      questions_created = create_quiz_questions_from_json(quiz, quiz_info['questions'])
+
+      if questions_created > 0
+        Rails.logger.info "      ✅ Module quiz created with #{questions_created} questions: #{quiz_step.title}"
+        return true
+      else
+        Rails.logger.error "      ❌ Failed to create quiz questions"
+        quiz_step.destroy
+        return false
+      end
     else
-      Rails.logger.error "      ❌ Failed to generate module quiz - no valid response from OpenAI"
+      Rails.logger.error "      ❌ Failed to generate module quiz - invalid JSON response"
       return false
     end
   rescue => e
     Rails.logger.error "      ❌ Error generating module quiz: #{e.message}"
     return false
+  end
+
+    def create_quiz_questions_from_json(quiz, questions_data)
+    return 0 unless questions_data.is_a?(Array)
+
+    questions_created = 0
+
+    questions_data.each_with_index do |question_data, index|
+      begin
+        Rails.logger.info "        → Processing question #{index + 1}: #{question_data.inspect}"
+        
+        # Validate required question data
+        unless question_data.is_a?(Hash) && question_data['question_text'].present?
+          Rails.logger.error "        ❌ Invalid question data structure for question #{index + 1}"
+          next
+        end
+
+        # Create the question
+        question = quiz.quiz_questions.create!(
+          question_text: question_data['question_text'],
+          question_type: question_data['question_type'] || 'multiple_choice',
+          points: (question_data['points'] || 10).to_i,
+          order_position: (question_data['order_position'] || (index + 1)).to_i,
+          explanation: question_data['explanation']
+        )
+
+        Rails.logger.info "        → Question created successfully: #{question.id}"
+
+        # Create the options
+        if question_data['options'].is_a?(Array) && question_data['options'].any?
+          question_data['options'].each_with_index do |option_data, option_index|
+            # Validate option data
+            unless option_data.is_a?(Hash) && option_data['option_text'].present?
+              Rails.logger.error "        ❌ Invalid option data for question #{index + 1}, option #{option_index + 1}"
+              next
+            end
+
+            option = question.quiz_question_options.create!(
+              option_text: option_data['option_text'],
+              is_correct: !!option_data['is_correct'], # Convert to boolean
+              order_position: (option_data['order_position'] || (option_index + 1)).to_i
+            )
+            
+            Rails.logger.info "        → Created option: #{option.id} (#{option.is_correct ? 'correct' : 'incorrect'})"
+          end
+        else
+          Rails.logger.error "        ❌ No valid options found for question #{index + 1}"
+          # Delete the question if no options were created
+          question.destroy
+          next
+        end
+
+        options_count = question.quiz_question_options.count
+        if options_count == 0
+          Rails.logger.error "        ❌ No options created for question #{index + 1}, deleting question"
+          question.destroy
+          next
+        end
+
+        questions_created += 1
+        Rails.logger.info "        ✅ Created question: #{question.question_type} (#{options_count} options)"
+        
+      rescue ActiveRecord::RecordInvalid => e
+        Rails.logger.error "        ❌ Validation error creating question #{index + 1}: #{e.message}"
+        Rails.logger.error "        ❌ Question data: #{question_data.inspect}"
+        next
+      rescue => e
+        Rails.logger.error "        ❌ Error creating question #{index + 1}: #{e.message}"
+        Rails.logger.error "        ❌ Backtrace: #{e.backtrace.first(3).join("\n")}"
+        Rails.logger.error "        ❌ Question data: #{question_data.inspect}"
+        next
+      end
+    end
+
+    Rails.logger.info "      ✅ Successfully created #{questions_created} questions"
+    questions_created
   end
 
   def build_module_content_prompt(course_module)
@@ -395,70 +497,7 @@ class GenerateFullCourseJob < ApplicationJob
     end
   end
 
-  def build_module_quiz_prompt(course_module)
-    steps_content = course_module.course_steps.ordered.map { |step|
-      "- #{step.title} (#{step.step_type}): #{step.content}"
-    }.join("\n")
 
-    # Build document context for quiz
-    document_context = ""
-    if @document_context[:chunks].any?
-      document_context = "\n\nREFERENCED DOCUMENT CONTENT FOR QUIZ QUESTIONS:\n"
-      document_context += "Base ALL quiz questions STRICTLY on the following document excerpts:\n\n"
-
-      # Use more chunks for quiz to have broader question coverage
-      quiz_chunks = @document_context[:chunks].first(8)
-      quiz_chunks.each_with_index do |chunk, i|
-        document_context += "--- Document Excerpt #{i+1} ---\n"
-        document_context += "#{chunk.content}\n\n"
-      end
-
-      document_context += "CRITICAL: All quiz questions and answers must be based on information found in the above document excerpts only.\n"
-    else
-      document_context = "\n\nWARNING: No document context available. Please generate generic quiz questions."
-    end
-
-    <<~PROMPT
-      Create a comprehensive quiz for the following course module:
-
-      Module: #{course_module.title}
-      Description: #{course_module.description}
-      Duration: #{course_module.duration_minutes} minutes
-
-      Steps covered in this module:
-      #{steps_content}#{document_context}
-
-      Generate a combo quiz that includes (based ONLY on the referenced document content):
-
-      1. **Multiple Choice Questions (5 questions)**
-         - Test key concepts from the DOCUMENTS
-         - Include 4 options each with clear distractors
-         - Mark correct answers with explanation FROM DOCUMENTS
-
-      2. **True/False Questions (3 questions)**
-         - Focus on information specifically mentioned in DOCUMENTS
-         - Provide detailed explanations for each answer using DOCUMENT CONTENT
-
-      3. **Short Answer Questions (2 questions)**
-         - Test practical application of concepts FROM DOCUMENTS
-         - Provide sample answers based on DOCUMENT INFORMATION
-
-      4. **Scenario-Based Question (1 question)**
-         - Present a realistic scenario based on DOCUMENT EXAMPLES
-         - Test ability to apply concepts FROM DOCUMENTS
-         - Include detailed solution approach using DOCUMENT GUIDANCE
-
-      Format the quiz in clear markdown with:
-      - Question numbers and clear formatting
-      - Answer choices for multiple choice/true-false
-      - Correct answers and explanations at the end
-      - Estimated time: 15 minutes total
-
-      Make questions challenging but fair, focusing on practical application of DOCUMENT CONTENT.
-
-      CRITICAL: All questions, answers, and explanations must be based exclusively on the provided document excerpts above. Do not include external knowledge.
-    PROMPT
-  end
 
   def broadcast_progress_update(course_id, completed_modules, total_modules, percentage)
     Turbo::StreamsChannel.broadcast_replace_to(
@@ -493,7 +532,7 @@ class GenerateFullCourseJob < ApplicationJob
             </div>
             <div class="flex items-center space-x-3">
               <div class="animate-pulse bg-red-300 rounded-full h-3 w-3 delay-200"></div>
-              <span class="text-sm text-red-800">Building document-based quizzes...</span>
+              <span class="text-sm text-red-800">Creating interactive quiz questions...</span>
             </div>
           </div>
 
@@ -514,7 +553,7 @@ class GenerateFullCourseJob < ApplicationJob
         <div class="text-center py-8 bg-green-50 border border-green-200 rounded-lg">
           <div class="text-green-600 text-6xl mb-4">🎉</div>
           <h2 class="text-xl font-semibold text-green-900 mb-2">Full Course Content Generated!</h2>
-          <p class="text-green-700 mb-6">Your complete course with detailed content from your documents and interactive quizzes is ready.</p>
+          <p class="text-green-700 mb-6">Your complete course with detailed content from your documents and interactive quiz questions is ready.</p>
 
           <!-- Success Stats -->
           <div class="bg-white rounded-lg p-4 mb-6 mx-auto max-w-md">

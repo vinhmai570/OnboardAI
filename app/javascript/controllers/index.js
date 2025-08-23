@@ -12,3 +12,6 @@ application.register("hello", HelloController)
 
 import CourseDocsController from "./course_docs_controller"
 application.register("course-docs", CourseDocsController)
+
+import QuizController from "./quiz_controller"
+application.register("quiz", QuizController)

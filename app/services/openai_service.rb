@@ -307,6 +307,163 @@ class OpenaiService
     nil
   end
 
+  # Generate structured quiz data as JSON
+  def self.generate_quiz_json(course_module, context_chunks = [])
+    Rails.logger.info "Generating structured quiz JSON for module: #{course_module.title}"
+
+    # Build document context
+    document_context = ""
+    if context_chunks.any?
+      document_context = "\n\nREFERENCED DOCUMENT CONTENT:\n"
+      document_context += "Base ALL quiz questions STRICTLY on the following document excerpts:\n\n"
+
+      context_chunks.first(8).each_with_index do |chunk, i|
+        document_context += "--- Document Excerpt #{i+1} ---\n"
+        document_context += "#{chunk.content}\n\n"
+      end
+
+      document_context += "CRITICAL: All quiz questions and answers must be based on information found in the above document excerpts only.\n"
+    else
+      document_context = "\n\nWARNING: No document context available. Please generate generic quiz questions."
+    end
+
+    steps_content = course_module.course_steps.ordered.map { |step|
+      "- #{step.title} (#{step.step_type}): #{step.content}"
+    }.join("\n")
+
+    system_prompt = <<~PROMPT
+      You are a quiz generation expert. Generate a comprehensive quiz in STRICT JSON format.
+
+      You must return ONLY valid JSON with no additional text or markdown formatting.
+
+      The JSON should have this exact structure:
+      {
+        "quiz": {
+          "title": "Module X Quiz",
+          "description": "Brief quiz description",
+          "total_points": 100,
+          "time_limit_minutes": 15,
+          "questions": [
+            {
+              "question_text": "What is...?",
+              "question_type": "multiple_choice",
+              "points": 10,
+              "order_position": 1,
+              "explanation": "This tests understanding of...",
+              "options": [
+                {
+                  "option_text": "Option A text",
+                  "is_correct": false,
+                  "order_position": 1
+                },
+                {
+                  "option_text": "Option B text",
+                  "is_correct": true,
+                  "order_position": 2
+                }
+              ]
+            }
+          ]
+        }
+      }
+
+      Question types must be: "multiple_choice", "true_false", or "short_answer"
+      For true_false questions, use exactly 2 options: "True" and "False"
+      For short_answer questions, include the correct answer as a single option
+
+      Return ONLY the JSON, no other text.
+    PROMPT
+
+    user_prompt = <<~PROMPT
+      Create a comprehensive quiz for the following course module:
+
+      Module: #{course_module.title}
+      Description: #{course_module.description}
+      Duration: #{course_module.duration_minutes} minutes
+
+      Steps covered in this module:
+      #{steps_content}#{document_context}
+
+      Generate a quiz with exactly:
+      - 5 multiple choice questions (4 options each)
+      - 3 true/false questions
+      - 2 short answer questions
+
+      Each question should be worth 10 points (total: 100 points).
+      Time limit should be 15 minutes.
+
+      #{context_chunks.any? ? 'Base all questions exclusively on the provided document excerpts.' : 'Generate appropriate educational questions for the module content.'}
+    PROMPT
+
+    response = client.chat(
+      parameters: {
+        model: "gpt-4",
+        messages: [
+          {
+            role: "system",
+            content: system_prompt
+          },
+          {
+            role: "user",
+            content: user_prompt
+          }
+        ],
+        temperature: 0.3,
+        max_tokens: 2000
+      }
+    )
+
+    content = response.dig("choices", 0, "message", "content")
+
+    # Clean the content in case it has markdown formatting
+    content = content.strip
+    content = content.gsub(/^```json\s*/, '').gsub(/\s*```$/, '')
+
+    Rails.logger.info "Generated quiz JSON (#{content.length} characters)"
+
+        # Parse JSON to validate format
+    quiz_data = JSON.parse(content)
+    
+    Rails.logger.info "Parsed quiz JSON: #{quiz_data.inspect}"
+    
+    # Validate structure
+    unless quiz_data.dig("quiz", "questions").is_a?(Array)
+      Rails.logger.error "Invalid quiz JSON structure - missing questions array"
+      Rails.logger.error "Quiz data structure: #{quiz_data.inspect}"
+      raise "Invalid quiz JSON structure - missing questions array"
+    end
+    
+    questions = quiz_data.dig('quiz', 'questions')
+    Rails.logger.info "Successfully generated quiz with #{questions.length} questions"
+    
+    # Validate each question has required fields
+    questions.each_with_index do |question, index|
+      unless question.is_a?(Hash) && question['question_text'].present?
+        Rails.logger.error "Invalid question structure at index #{index}: #{question.inspect}"
+      end
+      
+      unless question['options'].is_a?(Array) && question['options'].any?
+        Rails.logger.error "Invalid or missing options for question #{index}: #{question['options'].inspect}"
+      end
+      
+      question['options']&.each_with_index do |option, option_index|
+        unless option.is_a?(Hash) && option['option_text'].present?
+          Rails.logger.error "Invalid option structure for question #{index}, option #{option_index}: #{option.inspect}"
+        end
+      end
+    end
+    
+    quiz_data
+  rescue JSON::ParserError => e
+    Rails.logger.error "Quiz JSON Parse Error: #{e.message}"
+    Rails.logger.error "Raw content: #{content}" if defined?(content)
+    nil
+  rescue => e
+    Rails.logger.error "Quiz Generation Error: #{e.message}"
+    Rails.logger.error e.backtrace.first(5).join("\n")
+    nil
+  end
+
   private
 
   def self.build_task_list_prompt(user_prompt, context)
