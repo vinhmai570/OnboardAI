@@ -148,10 +148,10 @@
   <!-- Action Buttons -->
   <div class="border-t p-6 bg-gray-50">
     <div class="flex flex-col sm:flex-row gap-4 justify-center">
-      <%= link_to quiz_path(quiz),
-                  class: "px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-semibold text-center" do %>
+            <button onclick="window.courseDocsController?.retakeQuiz(<%= quiz.id %>)"
+              class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-semibold">
         🔄 Retake Quiz
-      <% end %>
+      </button>
 
       <%= link_to results_quiz_path(quiz),
                   class: "px-6 py-3 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors font-semibold text-center" do %>

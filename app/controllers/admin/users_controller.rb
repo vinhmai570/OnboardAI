@@ -60,6 +60,16 @@ class Admin::UsersController < ApplicationController
         assigned_by: current_user,
         assigned_at: Time.current
       )
+
+      # Create UserProgress records for all course steps
+      course.course_modules.includes(:course_steps).each do |course_module|
+        course_module.course_steps.each do |step|
+          step.user_progresses.find_or_create_by(user: @user) do |progress|
+            progress.status = 'not_started'
+          end
+        end
+      end
+
       redirect_to admin_user_path(@user), notice: "Course '#{course.title}' successfully assigned to #{@user.email}."
     else
       redirect_to admin_user_path(@user), alert: "Course is already assigned to this user."

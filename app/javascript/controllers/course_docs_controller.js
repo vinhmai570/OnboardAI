@@ -33,6 +33,9 @@ export default class extends Controller {
       breaks: true,
       gfm: true
     })
+
+    // Make controller available globally for retake quiz functionality
+    window.courseDocsController = this
   }
 
   // Load course data from the DOM
@@ -1202,6 +1205,53 @@ export default class extends Controller {
     // Real-time feedback methods removed - user requested no real-time checking
   // All feedback now shown only in final results screen
 
+  retakeQuiz(quizId) {
+    console.log("Retaking quiz:", quizId)
+
+    // Show loading state
+    if (this.hasStepBodyTarget) {
+      this.stepBodyTarget.innerHTML = `
+        <div class="flex items-center justify-center py-16">
+          <div class="text-center">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p class="text-gray-600">Starting new quiz attempt...</p>
+          </div>
+        </div>
+      `
+    }
+
+    // Start new quiz attempt
+    fetch(`/quizzes/${quizId}/start`, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'X-CSRF-Token': document.querySelector('[name="csrf-token"]').getAttribute('content')
+      }
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        // Reload quiz content to show the taking interface
+        // Find the current step element if it's not available
+        const stepElement = this.currentStepElement || this.stepButtonTargets.find(btn =>
+          parseInt(btn.dataset.stepId) === this.currentStepId
+        )
+        this.loadQuizContent(quizId, this.currentStepId, this.currentModuleId, stepElement)
+        this.showNotification('🚀 New quiz attempt started!', 'success', 2000)
+      } else {
+        this.showNotification(data.message || 'Failed to start new quiz attempt', 'error')
+        // Fallback - reload the page
+        window.location.reload()
+      }
+    })
+    .catch(error => {
+      console.error('Error starting new quiz attempt:', error)
+      this.showNotification('Failed to start new quiz. Please try again.', 'error')
+      // Fallback - reload the page
+      window.location.reload()
+    })
+  }
+
   showSubmitDialog() {
     const answeredCount = Object.keys(this.quizResponses).length
     const totalQuestions = this.quizQuestions.length
@@ -1400,7 +1450,7 @@ export default class extends Controller {
 
     // Build form data from current responses (for single-question interface)
     const formData = new FormData()
-    
+
     // Add current question answer if on single-question interface
     if (this.currentQuestionIndex !== undefined && this.quizQuestions) {
       this.saveCurrentAnswer() // Make sure current answer is saved to responses
@@ -1446,18 +1496,18 @@ export default class extends Controller {
     })
     .then(turboStreamHtml => {
       console.log("Received turbo stream response:", turboStreamHtml.substring(0, 200) + "...")
-      
+
       // Process the turbo stream response
       this.processTurboStreamResponse(turboStreamHtml)
       this.showNotification('🎉 Quiz completed! See your results below.', 'success', 3000)
-      
+
       // Clear quiz state since we're done
       this.currentQuiz = null
       this.currentAttempt = null
       this.quizQuestions = null
       this.quizResponses = null
       this.currentQuestionIndex = null
-      
+
       // Cleanup timers
       if (this.timerInterval) {
         clearInterval(this.timerInterval)
@@ -1471,7 +1521,7 @@ export default class extends Controller {
     .catch(error => {
       console.error('Error submitting quiz:', error)
       this.showNotification(`Failed to submit quiz: ${error.message}`, 'error')
-      
+
       // Restore button state on error
       submitBtn.textContent = originalText
       submitBtn.disabled = false
@@ -1480,45 +1530,45 @@ export default class extends Controller {
 
   processTurboStreamResponse(turboStreamHtml) {
     console.log("Processing turbo stream response...")
-    
+
     // Create a temporary element to parse the turbo stream
     const tempDiv = document.createElement('div')
     tempDiv.innerHTML = turboStreamHtml
-    
+
     // Find and execute turbo-stream elements
     const turboStreams = tempDiv.querySelectorAll('turbo-stream')
     console.log("Found turbo streams:", turboStreams.length)
-    
+
     turboStreams.forEach((stream, index) => {
       const action = stream.getAttribute('action')
       const target = stream.getAttribute('target')
-      
+
       console.log(`Turbo stream ${index}:`, { action, target })
-      
+
       if (action === 'replace' && target) {
         const targetElement = document.getElementById(target)
         const templateContent = stream.querySelector('template')
-        
+
         console.log("Target element found:", !!targetElement)
         console.log("Template content found:", !!templateContent)
-        
+
         if (targetElement && templateContent) {
           console.log("Replacing content in target:", target)
           targetElement.innerHTML = templateContent.innerHTML
-          
+
           // Scroll to top of results
           targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' })
         } else {
-          console.error("Missing target element or template content:", { 
-            targetElement: !!targetElement, 
-            templateContent: !!templateContent 
+          console.error("Missing target element or template content:", {
+            targetElement: !!targetElement,
+            templateContent: !!templateContent
           })
         }
       } else {
         console.warn("Unhandled turbo stream:", { action, target })
       }
     })
-    
+
     if (turboStreams.length === 0) {
       console.warn("No turbo streams found in response")
       console.log("Response content preview:", turboStreamHtml.substring(0, 500))

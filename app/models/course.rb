@@ -72,6 +72,38 @@ class Course < ApplicationRecord
     course_steps.where(step_type: 'assessment').count
   end
 
+  def module_progress_for_user(user)
+    return { total_modules: 0, completed_modules: 0, completion_percentage: 0, module_progress: [] } if course_modules.empty?
+    
+    total_modules = course_modules.count
+    completed_modules = 0
+    module_progress = []
+    
+    course_modules.includes(:course_steps).each do |course_module|
+      is_completed = course_module.completed_by?(user)
+      completion_percentage = course_module.completion_percentage_for_user(user)
+      
+      completed_modules += 1 if is_completed
+      
+      module_progress << {
+        module: course_module,
+        completed: is_completed,
+        completion_percentage: completion_percentage,
+        total_steps: course_module.course_steps.count,
+        completed_steps: course_module.course_steps.count { |step| step.completed_by?(user) }
+      }
+    end
+    
+    overall_completion = total_modules > 0 ? (completed_modules.to_f / total_modules * 100).round(2) : 0
+    
+    {
+      total_modules: total_modules,
+      completed_modules: completed_modules,
+      completion_percentage: overall_completion,
+      module_progress: module_progress
+    }
+  end
+
   def description
     # Return the prompt as description, but make it more user-friendly
     # Remove any system-specific instructions and keep it concise

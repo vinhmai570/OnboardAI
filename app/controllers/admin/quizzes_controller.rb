@@ -192,7 +192,7 @@ class Admin::QuizzesController < ApplicationController
     total_completed = @quiz.quiz_attempts.completed.count
     return 0 if total_completed.zero?
 
-    passed = @quiz.quiz_attempts.completed.where('(score::float / total_points::float * 100) >= 70').count
+    passed = @quiz.quiz_attempts.completed.where('(quiz_attempts.score::float / quiz_attempts.total_points::float * 100) >= 70').count
     (passed.to_f / total_completed * 100).round(2)
   end
 

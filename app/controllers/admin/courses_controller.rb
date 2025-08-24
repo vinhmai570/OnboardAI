@@ -122,6 +122,16 @@ class Admin::CoursesController < ApplicationController
           assigned_by: current_user,
           assigned_at: Time.current
         )
+
+        # Create UserProgress records for all course steps
+        @course.course_modules.includes(:course_steps).each do |course_module|
+          course_module.course_steps.each do |step|
+            step.user_progresses.find_or_create_by(user: user) do |progress|
+              progress.status = 'not_started'
+            end
+          end
+        end
+
         assigned_count += 1
       end
     end

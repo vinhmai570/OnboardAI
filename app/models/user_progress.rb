@@ -9,6 +9,9 @@ class UserProgress < ApplicationRecord
   # Ensure one progress record per user per course step
   validates :course_step_id, uniqueness: { scope: :user_id }
 
+  # Callbacks to ensure course progress tracking
+  after_update :update_course_progress_tracking, if: :saved_change_to_status?
+
   scope :completed, -> { where(status: 'completed') }
   scope :in_progress, -> { where(status: 'in_progress') }
   scope :not_started, -> { where(status: 'not_started') }
@@ -129,5 +132,23 @@ class UserProgress < ApplicationRecord
       completion_percentage: course_steps.count.zero? ? 0 : (progress_records.completed.count.to_f / course_steps.count * 100).round(2),
       progress_by_step: progress_records.index_by(&:course_step_id)
     }
+  end
+
+  private
+
+  def update_course_progress_tracking
+    # Log the progress change for debugging
+    course = course_step.course_module.course
+    course_progress = self.class.course_progress_for_user(user, course)
+
+    Rails.logger.info "UserProgress updated for #{user.email}: #{course.title} - Step '#{course_step.title}' now #{status}. Overall progress: #{course_progress[:completion_percentage]}%"
+
+    # Update legacy Progress model if it exists
+    legacy_progress = user.progresses.find_by(course: course)
+    if legacy_progress && status == 'completed'
+      legacy_progress.update!(
+        completed_steps: course_progress[:completed_steps]
+      )
+    end
   end
 end

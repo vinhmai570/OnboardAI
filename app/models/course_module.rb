@@ -22,6 +22,38 @@ class CourseModule < ApplicationRecord
     (duration_hours * 60).to_i
   end
 
+  # Mark all steps in this module as completed for a specific user
+  def complete_all_steps_for_user!(user, score = nil)
+    CourseStep.transaction do
+      course_steps.each do |step|
+        progress = step.user_progresses.find_or_create_by(user: user)
+        
+        # Start the step if it hasn't been started yet
+        progress.start! if progress.not_started?
+        
+        # Mark as completed with optional score
+        progress.complete!(score)
+      end
+    end
+    
+    Rails.logger.info "Module '#{title}' - All #{course_steps.count} steps marked as completed for #{user.email}"
+  end
+
+  # Check if all steps in module are completed by user
+  def completed_by?(user)
+    return false if course_steps.empty?
+    
+    course_steps.all? { |step| step.completed_by?(user) }
+  end
+
+  # Get completion percentage for this module for a specific user
+  def completion_percentage_for_user(user)
+    return 0 if course_steps.empty?
+    
+    completed_count = course_steps.count { |step| step.completed_by?(user) }
+    (completed_count.to_f / course_steps.count * 100).round(2)
+  end
+
   def move_up
     return false if order_position <= 1
 

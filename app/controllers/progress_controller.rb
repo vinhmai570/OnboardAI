@@ -122,7 +122,7 @@ class ProgressController < ApplicationController
       avg_quiz_score = QuizAttempt.joins(quiz: { course_step: { course_module: :course } })
                                  .where(courses: { id: course.id }, status: 'completed')
                                  .where.not(score: nil, total_points: nil)
-                                 .average('(score::float / total_points::float * 100)')
+                                 .average('(quiz_attempts.score::float / quiz_attempts.total_points::float * 100)')
                                  &.round(2) || 0
 
       {
@@ -233,8 +233,8 @@ class ProgressController < ApplicationController
     {
       total_quizzes: Quiz.joins(course_step: { course_module: :course }).where(courses: { id: @course.id }).count,
       completed_quizzes: quiz_attempts.count,
-      avg_score: quiz_attempts.average('score::float / total_points::float * 100')&.round(2) || 0,
-      best_score: quiz_attempts.maximum('score::float / total_points::float * 100')&.round(2) || 0,
+      avg_score: quiz_attempts.average('quiz_attempts.score::float / quiz_attempts.total_points::float * 100')&.round(2) || 0,
+      best_score: quiz_attempts.maximum('quiz_attempts.score::float / quiz_attempts.total_points::float * 100')&.round(2) || 0,
       total_time_spent: quiz_attempts.sum(&:time_spent_minutes),
       recent_attempts: quiz_attempts.includes(:quiz).order(completed_at: :desc).limit(5)
     }
