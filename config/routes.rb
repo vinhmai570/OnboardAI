@@ -118,6 +118,15 @@ Rails.application.routes.draw do
         post :regenerate
       end
     end
+
+    # Progress Analytics
+    resources :progress_analytics, only: [:index] do
+      collection do
+        get :course_details
+        get :user_details
+        get :export_analytics
+      end
+    end
   end
 
   # User-facing course routes

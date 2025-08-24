@@ -16,153 +16,197 @@
     </div>
   </nav>
 
-  <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-    <div class="px-4 py-6 sm:px-0">
-      <div class="mb-8">
-        <h2 class="text-3xl font-bold text-gray-900">Admin Dashboard</h2>
-        <p class="mt-2 text-gray-600">Manage users, documents, and courses for your OnboardAI platform.</p>
+  <div class="max-w-7xl mx-auto py-4 sm:px-6 lg:px-8">
+    <div class="px-4 py-4 sm:px-0">
+      <div class="mb-6">
+        <h2 class="text-2xl font-bold text-gray-900">Admin Dashboard</h2>
+        <p class="mt-1 text-gray-600">Manage users, documents, and courses for your OnboardAI platform.</p>
       </div>
 
-      <!-- Statistics Cards -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div class="bg-white overflow-hidden shadow rounded-lg">
-          <div class="p-5">
-            <div class="flex items-center">
-              <div class="flex-shrink-0">
-                <svg class="h-8 w-8 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-              </div>
-              <div class="ml-5 w-0 flex-1">
-                <dl>
-                  <dt class="text-sm font-medium text-gray-500 truncate">Total Users</dt>
-                  <dd class="text-lg font-medium text-gray-900"><%= @total_users %></dd>
-                </dl>
-              </div>
+      <!-- Featured Action - AI Course Generation -->
+      <div class="bg-gradient-to-r from-blue-500 to-purple-600 shadow-lg rounded-xl mb-6 overflow-hidden">
+        <div class="px-6 py-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-xl font-bold text-white">🚀 Generate Course with AI</h3>
+              <p class="text-blue-100 text-sm mt-1">Transform your documents into engaging training courses</p>
             </div>
-          </div>
-        </div>
-
-        <div class="bg-white overflow-hidden shadow rounded-lg">
-          <div class="p-5">
-            <div class="flex items-center">
-              <div class="flex-shrink-0">
-                <svg class="h-8 w-8 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/>
-                  <path fill-rule="evenodd" d="M4 5a2 2 0 012-2v1a1 1 0 102 0V3h3.586l-1.293 1.293a1 1 0 101.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L10.586 3H7V2a2 2 0 012-2H6a2 2 0 00-2 2v1H3a1 1 0 000 2v10a2 2 0 002 2h10a2 2 0 002-2V5a1 1 0 100-2h-1z"/>
-                </svg>
-              </div>
-              <div class="ml-5 w-0 flex-1">
-                <dl>
-                  <dt class="text-sm font-medium text-gray-500 truncate">Total Courses</dt>
-                  <dd class="text-lg font-medium text-gray-900"><%= @total_courses %></dd>
-                </dl>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="bg-white overflow-hidden shadow rounded-lg">
-          <div class="p-5">
-            <div class="flex items-center">
-              <div class="flex-shrink-0">
-                <svg class="h-8 w-8 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-1a1 1 0 00-1-1H9a1 1 0 00-1 1v1a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z"/>
-                </svg>
-              </div>
-              <div class="ml-5 w-0 flex-1">
-                <dl>
-                  <dt class="text-sm font-medium text-gray-500 truncate">Total Documents</dt>
-                  <dd class="text-lg font-medium text-gray-900"><%= @total_documents %></dd>
-                </dl>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Quick Actions -->
-      <div class="bg-white shadow rounded-lg mb-8">
-        <div class="px-4 py-5 sm:p-6">
-          <h3 class="text-lg font-medium text-gray-900 mb-4">Quick Actions</h3>
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <%= link_to admin_users_path, class: "inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700" do %>
-              <svg class="-ml-1 mr-2 h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M8 9a3 3 0 100-6 3 3 0 000 6zM8 11a6 6 0 016 6H2a6 6 0 016-6zM16 7a1 1 0 10-2 0v1h-1a1 1 0 100 2h1v1a1 1 0 102 0v-1h1a1 1 0 100-2h-1V7z"/>
-              </svg>
-              Manage Users
-            <% end %>
-
-            <%= link_to admin_courses_path, class: "inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700" do %>
-              <svg class="-ml-1 mr-2 h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z"/>
-              </svg>
-              Manage Courses
-            <% end %>
-
-            <%= link_to admin_documents_path, class: "inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700" do %>
-              <svg class="-ml-1 mr-2 h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-1a1 1 0 00-1-1H9a1 1 0 00-1 1v1a1 1 0 01-1 1H4a1 1 0 110-2V4z"/>
-              </svg>
-              Manage Documents
-            <% end %>
-
-            <%= link_to admin_course_generator_index_path, class: "inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-yellow-600 hover:bg-yellow-700" do %>
-              <svg class="-ml-1 mr-2 h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+            <%= link_to admin_course_generator_index_path, class: "inline-flex items-center px-6 py-3 border-2 border-white text-sm font-semibold rounded-lg text-white bg-white/10 hover:bg-white/20 transition-all duration-200" do %>
+              <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
                 <path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd"/>
               </svg>
-              Generate Course with AI
+              Start Creating
             <% end %>
           </div>
         </div>
       </div>
 
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <!-- Recent Courses -->
-        <div class="bg-white shadow rounded-lg">
-          <div class="px-4 py-5 sm:p-6">
-            <h3 class="text-lg font-medium text-gray-900 mb-4">Recent Courses</h3>
-            <% if @recent_courses.any? %>
-              <div class="space-y-3">
-                <% @recent_courses.each do |course| %>
-                  <div class="flex justify-between items-center">
-                    <div>
-                      <p class="text-sm font-medium text-gray-900"><%= course.title %></p>
-                      <p class="text-xs text-gray-500">Created <%= time_ago_in_words(course.created_at) %> ago</p>
-                    </div>
-                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium <%= course.published? ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' %>">
-                      <%= course.published? ? 'Published' : 'Draft' %>
-                    </span>
-                  </div>
-                <% end %>
-              </div>
-            <% else %>
-              <p class="text-gray-500">No courses created yet.</p>
-            <% end %>
+      <!-- Key Metrics Overview -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-white p-4 rounded-lg shadow-sm border">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-sm text-gray-600">Users</p>
+              <p class="text-2xl font-bold text-gray-900"><%= @total_users %></p>
+            </div>
+            <div class="h-8 w-8 bg-blue-100 rounded-lg flex items-center justify-center">
+              <svg class="h-4 w-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+            </div>
           </div>
         </div>
 
-        <!-- Recent Users -->
-        <div class="bg-white shadow rounded-lg">
-          <div class="px-4 py-5 sm:p-6">
-            <h3 class="text-lg font-medium text-gray-900 mb-4">Recent Users</h3>
-            <% if @recent_users.any? %>
-              <div class="space-y-3">
-                <% @recent_users.each do |user| %>
-                  <div class="flex justify-between items-center">
-                    <div>
-                      <p class="text-sm font-medium text-gray-900"><%= user.email %></p>
-                      <p class="text-xs text-gray-500">Joined <%= time_ago_in_words(user.created_at) %> ago</p>
-                    </div>
-                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium <%= user.admin? ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800' %>">
-                      <%= user.role.capitalize %>
-                    </span>
-                  </div>
-                <% end %>
+        <div class="bg-white p-4 rounded-lg shadow-sm border">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-sm text-gray-600">Courses</p>
+              <p class="text-2xl font-bold text-gray-900"><%= @total_courses %></p>
+            </div>
+            <div class="h-8 w-8 bg-green-100 rounded-lg flex items-center justify-center">
+              <svg class="h-4 w-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-lg shadow-sm border">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-sm text-gray-600">Completion</p>
+              <p class="text-2xl font-bold text-green-600"><%= @progress_summary[:average_completion_rate] %>%</p>
+            </div>
+            <div class="h-8 w-8 bg-purple-100 rounded-lg flex items-center justify-center">
+              <svg class="h-4 w-4 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-lg shadow-sm border">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-sm text-gray-600">Active</p>
+              <p class="text-2xl font-bold text-blue-600"><%= @progress_summary[:active_users_this_week] %></p>
+            </div>
+            <div class="h-8 w-8 bg-orange-100 rounded-lg flex items-center justify-center">
+              <svg class="h-4 w-4 text-orange-600" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Actions & Recent Activity -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        <!-- Quick Actions -->
+        <div class="bg-white shadow-sm rounded-lg border">
+          <div class="p-5">
+            <h3 class="text-lg font-medium text-gray-900 mb-3">Quick Actions</h3>
+            <div class="space-y-2">
+              <%= link_to admin_courses_path, class: "flex items-center p-3 text-sm text-gray-700 rounded-lg hover:bg-gray-50 transition-colors" do %>
+                <div class="flex-shrink-0 w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center mr-3">
+                  <svg class="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z"/>
+                  </svg>
+                </div>
+                <span class="font-medium">Manage Courses</span>
+                <svg class="w-4 h-4 ml-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                </svg>
+              <% end %>
+
+              <%= link_to admin_documents_path, class: "flex items-center p-3 text-sm text-gray-700 rounded-lg hover:bg-gray-50 transition-colors" do %>
+                <div class="flex-shrink-0 w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center mr-3">
+                  <svg class="w-4 h-4 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-1a1 1 0 00-1-1H9a1 1 0 00-1 1v1a1 1 0 01-1 1H4a1 1 0 110-2V4z"/>
+                  </svg>
+                </div>
+                <span class="font-medium">Manage Documents</span>
+                <svg class="w-4 h-4 ml-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                </svg>
+              <% end %>
+
+              <%= link_to admin_users_path, class: "flex items-center p-3 text-sm text-gray-700 rounded-lg hover:bg-gray-50 transition-colors" do %>
+                <div class="flex-shrink-0 w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center mr-3">
+                  <svg class="w-4 h-4 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M8 9a3 3 0 100-6 3 3 0 000 6zM8 11a6 6 0 016 6H2a6 6 0 016-6zM16 7a1 1 0 10-2 0v1h-1a1 1 0 100 2h1v1a1 1 0 102 0v-1h1a1 1 0 100-2h-1V7z"/>
+                  </svg>
+                </div>
+                <span class="font-medium">Manage Users</span>
+                <svg class="w-4 h-4 ml-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                </svg>
+              <% end %>
+
+              <%= link_to admin_progress_analytics_path, class: "flex items-center p-3 text-sm text-gray-700 rounded-lg hover:bg-gray-50 transition-colors" do %>
+                <div class="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+                  <svg class="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"/>
+                  </svg>
+                </div>
+                <span class="font-medium">Progress Analytics</span>
+                <svg class="w-4 h-4 ml-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                </svg>
+              <% end %>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Activity Summary -->
+        <div class="bg-white shadow-sm rounded-lg border">
+          <div class="p-5">
+            <h3 class="text-lg font-medium text-gray-900 mb-3">Recent Activity</h3>
+            <div class="space-y-3">
+
+              <!-- Progress Summary -->
+              <div class="flex items-center justify-between py-2 border-b border-gray-100">
+                <div class="flex items-center">
+                  <div class="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
+                  <span class="text-sm text-gray-600">Completions this week</span>
+                </div>
+                <span class="text-sm font-semibold text-gray-900"><%= @progress_summary[:recent_completions_count] %></span>
               </div>
-            <% else %>
-              <p class="text-gray-500">No users registered yet.</p>
-            <% end %>
+
+              <div class="flex items-center justify-between py-2 border-b border-gray-100">
+                <div class="flex items-center">
+                  <div class="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
+                  <span class="text-sm text-gray-600">New courses</span>
+                </div>
+                <span class="text-sm font-semibold text-gray-900"><%= @recent_courses.count %></span>
+              </div>
+
+              <div class="flex items-center justify-between py-2 border-b border-gray-100">
+                <div class="flex items-center">
+                  <div class="w-2 h-2 bg-purple-500 rounded-full mr-3"></div>
+                  <span class="text-sm text-gray-600">New users</span>
+                </div>
+                <span class="text-sm font-semibold text-gray-900"><%= @recent_users.count %></span>
+              </div>
+
+              <div class="flex items-center justify-between py-2">
+                <div class="flex items-center">
+                  <div class="w-2 h-2 bg-orange-500 rounded-full mr-3"></div>
+                  <span class="text-sm text-gray-600">Need attention</span>
+                </div>
+                <span class="text-sm font-semibold text-gray-900"><%= @users_needing_attention.count %></span>
+              </div>
+
+              <!-- Quick Links -->
+              <div class="pt-4 border-t border-gray-100">
+                <div class="flex space-x-4 text-xs">
+                  <%= link_to "View All Courses", admin_courses_path, class: "text-blue-600 hover:text-blue-800" %>
+                  <%= link_to "View All Users", admin_users_path, class: "text-blue-600 hover:text-blue-800" %>
+                  <%= link_to "Full Analytics", admin_progress_analytics_path, class: "text-blue-600 hover:text-blue-800" %>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
