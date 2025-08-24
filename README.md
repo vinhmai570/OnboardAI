@@ -142,6 +142,47 @@ OnboardAI/
 └── docker-compose.yml     # Docker development environment
 ```
 
+## 🔄 Application Flow
+
+This diagram shows the complete flow from document upload to AI-powered course generation:
+
+```mermaid
+sequenceDiagram
+    participant A as Admin
+    participant B as Backend Server
+    participant O as OpenAI
+    participant P as Pgvector DB
+
+    Note over A,P: Document Upload & Processing Flow
+    A->>B: Upload training documents (PDF, Word, etc.)
+    B->>B: Extract text and split into chunks
+    B->>P: Store document chunks
+    B->>O: Generate embeddings for chunks
+    O-->>B: Return vector embeddings
+    B->>P: Store embeddings with chunks
+    B-->>A: Documents ready for use
+
+    Note over A,P: Course Generation Flow
+    A->>B: Submit course prompt with @document mentions
+    B->>P: Query relevant document chunks using embeddings
+    P-->>B: Return matching content chunks
+    B->>O: Generate course overview with context
+    O-->>B: Return course overview
+    B-->>A: Stream course overview in real-time
+    A->>B: Approve and request detailed structure
+    B->>O: Generate detailed course structure (modules, steps, quizzes)
+    O-->>B: Return structured course data
+    B->>P: Store course structure
+    B-->>A: Course ready for learners
+```
+
+**Key Features:**
+- **Document Processing**: Automatically extracts and indexes content from uploaded documents
+- **AI-Powered Search**: Uses vector embeddings to find relevant content for course generation
+- **Two-Phase Generation**: Quick overview first, then detailed course structure
+- **Real-time Streaming**: Live course generation updates similar to ChatGPT
+- **Structured Output**: Creates organized courses with modules, steps, and assessments
+
 ## 🧪 Development Workflow
 
 ### Making Changes
