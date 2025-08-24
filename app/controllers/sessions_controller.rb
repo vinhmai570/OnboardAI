@@ -2,7 +2,7 @@ class SessionsController < ApplicationController
   skip_before_action :require_login, only: [ :new, :create ]
 
   def new
-    redirect_to dashboard_index_path if logged_in?
+    redirect_to dashboard_path if logged_in?
   end
 
   def create
@@ -11,9 +11,9 @@ class SessionsController < ApplicationController
     if user && user.authenticate(params[:password])
       session[:user_id] = user.id
       if user.admin?
-        redirect_to admin_dashboard_index_path, notice: "Welcome back, Admin!"
+        redirect_to admin_dashboard_path, notice: "Welcome back, Admin!"
       else
-        redirect_to dashboard_index_path, notice: "Welcome back!"
+        redirect_to dashboard_path, notice: "Welcome back!"
       end
     else
       flash.now[:alert] = "Invalid email or password"

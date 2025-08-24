@@ -164,7 +164,7 @@ class Admin::ProgressAnalyticsController < ApplicationController
   end
 
   def courses_with_progress
-    Course.joins(course_modules: { course_steps: :user_progresses }).distinct.count
+    Course.joins(course_modules: { course_steps: :user_progresses }).select('DISTINCT courses.id').count
   end
 
   def course_analytics_data(course)

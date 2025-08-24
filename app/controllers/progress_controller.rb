@@ -170,9 +170,14 @@ class ProgressController < ApplicationController
   end
 
   def courses_with_progress
-    Course.joins(course_modules: { course_steps: :user_progresses })
-          .where(user_progresses: { user: current_user })
-          .distinct
+    # Use select with distinct on id to avoid JSON column equality issues
+    course_ids = Course.joins(course_modules: { course_steps: :user_progresses })
+                      .where(user_progresses: { user: current_user })
+                      .select('DISTINCT courses.id')
+                      .pluck(:id)
+    
+    Course.where(id: course_ids)
+          .includes(course_modules: :course_steps)
           .map do |course|
             progress_data = current_user.progress_for_course(course)
             quiz_completion_rate = current_user.quiz_completion_rate_for_course(course)
@@ -192,9 +197,10 @@ class ProgressController < ApplicationController
   end
 
   def calculate_overall_stats
+    # Use distinct on id to avoid JSON column equality issues
     total_courses = Course.joins(course_modules: { course_steps: :user_progresses })
                          .where(user_progresses: { user: current_user })
-                         .distinct
+                         .select('DISTINCT courses.id')
                          .count
 
     completed_courses = current_user.total_courses_completed

@@ -1,9 +1,4 @@
 Rails.application.routes.draw do
-  get "chat/create"
-  get "courses/index"
-  get "courses/show"
-  get "courses/enroll"
-  get "courses/complete_step"
   # Authentication routes
   resources :sessions, only: [ :new, :create, :destroy ]
   get "/login", to: "sessions#new"
@@ -14,26 +9,12 @@ Rails.application.routes.draw do
 
   # User dashboard
   get "dashboard", to: "dashboard#index"
-  get "dashboard/index"
 
   # Admin routes
   namespace :admin do
-    get "course_steps/index"
-    get "course_steps/new"
-    get "course_steps/create"
-    get "course_steps/edit"
-    get "course_steps/update"
-    get "course_steps/destroy"
-    get "course_steps/move_up"
-    get "course_steps/move_down"
-    get "course_modules/index"
-    get "course_modules/new"
-    get "course_modules/create"
-    get "course_modules/edit"
-    get "course_modules/update"
-    get "course_modules/destroy"
-    get "course_modules/move_up"
-    get "course_modules/move_down"
+    # Admin dashboard
+    get "dashboard", to: "dashboard#index"
+
     # Course Generator with AI
     resources :course_generator, only: [ :index ] do
       collection do
@@ -43,40 +24,23 @@ Rails.application.routes.draw do
         post :new_conversation
         post :switch_conversation
         get :search_documents
-        end
-        member do
-          post :generate_full_course
-          get :show_full_course
-        end
-        collection do
-          get 'step_content/:id', to: 'course_generator#step_content', as: 'step_content'
-        end
+        get 'step_content/:id', to: 'course_generator#step_content', as: 'step_content'
+      end
+      member do
+        post :generate_full_course
+        get :show_full_course
+      end
     end
-    get "courses/index"
-    get "courses/new"
-    get "courses/create"
-    get "courses/show"
-    get "courses/edit"
-    get "courses/update"
-    get "courses/destroy"
-    get "courses/generate_tasks"
-    get "courses/generate_details"
-    get "courses/publish"
-    get "users/index"
-    get "users/new"
-    get "users/create"
-    get "users/edit"
-    get "users/update"
-    get "users/destroy"
-    get "dashboard", to: "dashboard#index"
-    get "dashboard/index"
 
+    # User management
     resources :users do
       member do
         post :assign_course
         delete :unassign_course
       end
     end
+
+    # Document management
     resources :documents do
       member do
         post :process_document
@@ -85,6 +49,8 @@ Rails.application.routes.draw do
         delete :bulk_delete
       end
     end
+
+    # Course management with nested resources
     resources :courses do
       member do
         post :generate_tasks

@@ -25,7 +25,7 @@ class ApplicationController < ActionController::Base
   end
 
   def require_admin
-    redirect_to dashboard_index_path unless admin?
+    redirect_to dashboard_path unless admin?
   end
 
   def skip_authentication

@@ -13,7 +13,7 @@ class Admin::QuizzesController < ApplicationController
       @selected_course = Course.find(params[:course_id])
     end
 
-    @courses = Course.joins(course_modules: { course_steps: :quiz }).distinct
+    @courses = Course.joins(course_modules: { course_steps: :quiz }).select('DISTINCT courses.*').group('courses.id')
   end
 
   def show
