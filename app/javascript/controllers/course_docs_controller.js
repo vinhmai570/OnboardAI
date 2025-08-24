@@ -731,7 +731,7 @@ export default class extends Controller {
     this.quizResponses = responses
 
     this.stepBodyTarget.innerHTML = `
-      <div class="max-w-4xl">
+      <div id="quiz-container" class="max-w-4xl">
         <!-- Quiz Progress -->
         <div class="bg-gray-50 rounded-lg p-4 mb-6">
           <div class="flex items-center justify-between mb-2">
@@ -893,6 +893,11 @@ export default class extends Controller {
   }
 
   handleSingleQuestionChange(event) {
+    // Exit early if quiz data is not available (quiz completed or not started)
+    if (!this.quizQuestions || !this.quizResponses || !this.currentAttempt) {
+      return
+    }
+
     // Update the question status immediately
     const questionBlock = event.target.closest('.question-block')
     if (questionBlock) {
@@ -901,6 +906,9 @@ export default class extends Controller {
 
     // Update navigation dots and answered count
     this.updateQuizNavigation()
+
+    // Removed real-time answer checking as requested by user
+    // Only score answers when quiz is submitted
 
     // Auto-save after a delay
     clearTimeout(this.autoSaveTimeout)
@@ -1020,8 +1028,32 @@ export default class extends Controller {
       this.currentQuestionIndex++
       this.renderCurrentQuestion()
     } else {
-      // On last question, show submit dialog
-      this.showSubmitDialog()
+      // On last question, submit the quiz
+      this.finalSubmitQuiz()
+    }
+  }
+
+  finalSubmitQuiz() {
+    const answeredCount = Object.keys(this.quizResponses).length
+    const totalQuestions = this.quizQuestions.length
+    const unansweredCount = totalQuestions - answeredCount
+
+    let message = `Ready to submit your quiz?\n\n`
+    message += `• Answered: ${answeredCount}/${totalQuestions} questions\n`
+
+    if (unansweredCount > 0) {
+      message += `• Unanswered: ${unansweredCount} questions will be marked as incorrect\n`
+    }
+
+    message += `\nYou'll see your results immediately after submission.`
+
+    if (confirm(message)) {
+      // Create a fake event to trigger submission
+      const submitEvent = {
+        preventDefault: () => {},
+        target: document.getElementById('next-question-btn')
+      }
+      this.submitQuizAttempt(submitEvent)
     }
   }
 
@@ -1048,7 +1080,7 @@ export default class extends Controller {
 
   saveCurrentAnswer() {
     const form = document.getElementById('quiz-form')
-    if (!form) return
+    if (!form || !this.quizQuestions || !this.quizResponses || this.currentQuestionIndex === null || this.currentQuestionIndex === undefined) return
 
     const question = this.quizQuestions[this.currentQuestionIndex]
     if (!question) return
@@ -1094,6 +1126,11 @@ export default class extends Controller {
   }
 
   updateQuizNavigation() {
+    // Exit early if quiz data is not available (quiz completed or not started)
+    if (!this.quizQuestions || !this.quizResponses || this.currentQuestionIndex === null || this.currentQuestionIndex === undefined) {
+      return
+    }
+
     const prevBtn = document.getElementById('prev-question-btn')
     const nextBtn = document.getElementById('next-question-btn')
     const currentQuestionNum = document.getElementById('current-question-num')
@@ -1146,6 +1183,11 @@ export default class extends Controller {
   }
 
   updateAnsweredCount() {
+    // Exit early if quiz data is not available (quiz completed or not started)
+    if (!this.quizResponses) {
+      return
+    }
+
     const answeredCount = Object.keys(this.quizResponses).length
     const answeredCountElement = document.getElementById('answered-count')
 
@@ -1153,6 +1195,12 @@ export default class extends Controller {
       answeredCountElement.textContent = answeredCount
     }
   }
+
+    // checkAnswerInRealTime method removed - user requested no real-time checking
+  // All scoring now happens only when quiz is submitted
+
+    // Real-time feedback methods removed - user requested no real-time checking
+  // All feedback now shown only in final results screen
 
   showSubmitDialog() {
     const answeredCount = Object.keys(this.quizResponses).length
@@ -1308,7 +1356,7 @@ export default class extends Controller {
 
   saveQuizProgress() {
     const form = document.getElementById('quiz-form')
-    if (!form || !this.currentAttempt) return
+    if (!form || !this.currentAttempt || !this.currentQuiz) return
 
     console.log("Auto-saving quiz progress...")
 
@@ -1325,7 +1373,8 @@ export default class extends Controller {
     .then(data => {
       if (data.success) {
         console.log("Progress saved successfully")
-        this.showNotification('Progress saved automatically', 'success', 2000)
+        // Remove automatic notification - keep it silent
+        // this.showNotification('Progress saved automatically', 'success', 2000)
       }
     })
     .catch(error => {
@@ -1336,14 +1385,12 @@ export default class extends Controller {
   submitQuizAttempt(event) {
     event.preventDefault()
 
-    const form = document.getElementById('quiz-form')
-    if (!form || !this.currentAttempt) return
-
-    if (!confirm('Are you sure you want to submit your quiz? You won\'t be able to change your answers after submission.')) {
+    if (!this.currentAttempt || !this.currentQuiz) {
+      this.showNotification('No active quiz found', 'error')
       return
     }
 
-    console.log("Submitting quiz...")
+    console.log("Submitting quiz... Current responses:", this.quizResponses)
 
     // Show loading state
     const submitBtn = event.target
@@ -1351,35 +1398,131 @@ export default class extends Controller {
     submitBtn.textContent = 'Submitting...'
     submitBtn.disabled = true
 
-    const formData = new FormData(form)
+    // Build form data from current responses (for single-question interface)
+    const formData = new FormData()
+    
+    // Add current question answer if on single-question interface
+    if (this.currentQuestionIndex !== undefined && this.quizQuestions) {
+      this.saveCurrentAnswer() // Make sure current answer is saved to responses
+    }
 
-    fetch(`/quizzes/${this.currentQuiz.id}/submit.json`, {
+    // Add all responses to form data
+    if (this.quizResponses) {
+      Object.keys(this.quizResponses).forEach(questionId => {
+        const response = this.quizResponses[questionId]
+        if (response && response.selected_option_id) {
+          formData.append(`questions[${questionId}][selected_option_id]`, response.selected_option_id)
+        }
+        if (response && response.answer_text) {
+          formData.append(`questions[${questionId}][answer_text]`, response.answer_text)
+        }
+      })
+    }
+
+    // Debug: Log what we're sending
+    console.log("FormData being sent:")
+    for (let [key, value] of formData.entries()) {
+      console.log(key, value)
+    }
+
+    // Use Turbo Stream for seamless results display
+    fetch(`/quizzes/${this.currentQuiz.id}/submit`, {
       method: 'PATCH',
       body: formData,
       headers: {
+        'Accept': 'text/vnd.turbo-stream.html',
         'X-CSRF-Token': document.querySelector('[name="csrf-token"]').getAttribute('content')
       }
     })
-    .then(response => response.json())
-    .then(data => {
-      if (data.success) {
-        this.showNotification('Quiz submitted successfully!', 'success')
-        // Show results
-        setTimeout(() => {
-          this.loadQuizResults(this.currentQuiz.id)
-        }, 1000)
+    .then(response => {
+      console.log("Submit response status:", response.status)
+      if (response.ok) {
+        return response.text()
       } else {
-        this.showNotification(data.message || 'Failed to submit quiz', 'error')
+        return response.text().then(text => {
+          throw new Error(`HTTP ${response.status}: ${text}`)
+        })
+      }
+    })
+    .then(turboStreamHtml => {
+      console.log("Received turbo stream response:", turboStreamHtml.substring(0, 200) + "...")
+      
+      // Process the turbo stream response
+      this.processTurboStreamResponse(turboStreamHtml)
+      this.showNotification('🎉 Quiz completed! See your results below.', 'success', 3000)
+      
+      // Clear quiz state since we're done
+      this.currentQuiz = null
+      this.currentAttempt = null
+      this.quizQuestions = null
+      this.quizResponses = null
+      this.currentQuestionIndex = null
+      
+      // Cleanup timers
+      if (this.timerInterval) {
+        clearInterval(this.timerInterval)
+        this.timerInterval = null
+      }
+      if (this.autoSaveInterval) {
+        clearInterval(this.autoSaveInterval)
+        this.autoSaveInterval = null
       }
     })
     .catch(error => {
       console.error('Error submitting quiz:', error)
-      this.showNotification('Failed to submit quiz. Please try again.', 'error')
-    })
-    .finally(() => {
+      this.showNotification(`Failed to submit quiz: ${error.message}`, 'error')
+      
+      // Restore button state on error
       submitBtn.textContent = originalText
       submitBtn.disabled = false
     })
+  }
+
+  processTurboStreamResponse(turboStreamHtml) {
+    console.log("Processing turbo stream response...")
+    
+    // Create a temporary element to parse the turbo stream
+    const tempDiv = document.createElement('div')
+    tempDiv.innerHTML = turboStreamHtml
+    
+    // Find and execute turbo-stream elements
+    const turboStreams = tempDiv.querySelectorAll('turbo-stream')
+    console.log("Found turbo streams:", turboStreams.length)
+    
+    turboStreams.forEach((stream, index) => {
+      const action = stream.getAttribute('action')
+      const target = stream.getAttribute('target')
+      
+      console.log(`Turbo stream ${index}:`, { action, target })
+      
+      if (action === 'replace' && target) {
+        const targetElement = document.getElementById(target)
+        const templateContent = stream.querySelector('template')
+        
+        console.log("Target element found:", !!targetElement)
+        console.log("Template content found:", !!templateContent)
+        
+        if (targetElement && templateContent) {
+          console.log("Replacing content in target:", target)
+          targetElement.innerHTML = templateContent.innerHTML
+          
+          // Scroll to top of results
+          targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        } else {
+          console.error("Missing target element or template content:", { 
+            targetElement: !!targetElement, 
+            templateContent: !!templateContent 
+          })
+        }
+      } else {
+        console.warn("Unhandled turbo stream:", { action, target })
+      }
+    })
+    
+    if (turboStreams.length === 0) {
+      console.warn("No turbo streams found in response")
+      console.log("Response content preview:", turboStreamHtml.substring(0, 500))
+    }
   }
 
   loadQuizResults(quizId) {
@@ -1623,6 +1766,7 @@ export default class extends Controller {
       clearTimeout(this.autoSaveTimeout)
       this.autoSaveTimeout = null
     }
+    // Removed answerCheckTimeout cleanup - no longer using real-time checking
   }
 
   disconnect() {
@@ -1636,5 +1780,6 @@ export default class extends Controller {
     if (this.autoSaveTimeout) {
       clearTimeout(this.autoSaveTimeout)
     }
+    // Removed answerCheckTimeout cleanup - no longer using real-time checking
   }
 }

@@ -116,6 +116,7 @@ Rails.application.routes.draw do
       patch :submit
       get :results
       patch :save_progress
+      post :check_answer # Real-time answer checking
     end
   end
 

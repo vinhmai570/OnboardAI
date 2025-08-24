@@ -142,6 +142,7 @@ class QuizzesController < ApplicationController
     unless @current_attempt&.in_progress?
       respond_to do |format|
         format.html { redirect_to quiz_path(@quiz), alert: 'No active quiz attempt found.' }
+        format.turbo_stream { render turbo_stream: turbo_stream.replace("quiz-container", html: "<div class='bg-red-50 border border-red-200 rounded-lg p-6 text-center'><h3 class='text-red-800 font-bold mb-2'>Error</h3><p class='text-red-700'>No active quiz attempt found.</p></div>") }
         format.json { render json: { success: false, message: 'No active quiz attempt found.' }, status: :bad_request }
       end
       return
@@ -177,12 +178,41 @@ class QuizzesController < ApplicationController
 
       respond_to do |format|
         format.html { redirect_to quiz_results_path(@quiz), notice: 'Quiz submitted successfully!' }
+        format.turbo_stream {
+          Rails.logger.info "Rendering turbo stream response for quiz #{@quiz.id}"
+
+          # Prepare results data for turbo stream
+          @completed_attempt = @current_attempt
+          @questions_with_responses = @quiz.quiz_questions.ordered.map do |question|
+            response = @completed_attempt.quiz_responses.find_by(quiz_question: question)
+            {
+              question: question,
+              response: response,
+              user_answer: response&.response_text_display,
+              correct_answer: question.correct_options.map(&:option_text).join(', '),
+              is_correct: response&.is_correct || false,
+              points_earned: response&.points_earned || 0,
+              explanation: question.explanation
+            }
+          end
+
+          Rails.logger.info "Quiz results: score=#{@completed_attempt.percentage_score}%, passed=#{@completed_attempt.passed?}"
+
+          render turbo_stream: turbo_stream.replace("quiz-container", partial: "quiz_results", locals: {
+            quiz: @quiz,
+            attempt: @completed_attempt,
+            questions_with_responses: @questions_with_responses,
+            course: @quiz.course_step.course_module.course,
+            course_step: @quiz.course_step
+          })
+        }
         format.json { render json: { success: true, message: 'Quiz submitted successfully!', attempt_id: @current_attempt.id } }
       end
     rescue StandardError => e
       Rails.logger.error "Failed to submit quiz: #{e.message}"
       respond_to do |format|
         format.html { redirect_to quiz_path(@quiz), alert: 'Failed to submit quiz. Please try again.' }
+        format.turbo_stream { render turbo_stream: turbo_stream.replace("quiz-container", html: "<div class='bg-red-50 border border-red-200 rounded-lg p-6 text-center'><h3 class='text-red-800 font-bold mb-2'>Error</h3><p class='text-red-700'>Failed to submit quiz. Please try again.</p></div>") }
         format.json { render json: { success: false, message: 'Failed to submit quiz. Please try again.' }, status: :unprocessable_entity }
       end
     end
@@ -298,6 +328,82 @@ class QuizzesController < ApplicationController
     rescue StandardError => e
       Rails.logger.error "Failed to save quiz progress: #{e.message}"
       render json: { success: false, message: 'Failed to save progress.' }, status: :unprocessable_entity
+    end
+  end
+
+  def check_answer
+    unless @current_attempt&.in_progress?
+      render json: { success: false, message: 'No active quiz attempt found.' }, status: :bad_request
+      return
+    end
+
+    question_id = params[:question_id]
+    question = @quiz.quiz_questions.find_by(id: question_id)
+
+    unless question
+      render json: { success: false, message: 'Question not found.' }, status: :not_found
+      return
+    end
+
+    begin
+      feedback = case question.question_type
+      when 'multiple_choice', 'true_false'
+        selected_option_id = params[:selected_option_id]
+        if selected_option_id.present?
+          selected_option = question.quiz_question_options.find_by(id: selected_option_id)
+          if selected_option
+            is_correct = selected_option.is_correct
+            correct_options = question.quiz_question_options.where(is_correct: true)
+
+            {
+              is_correct: is_correct,
+              feedback_type: is_correct ? 'correct' : 'incorrect',
+              message: is_correct ? 'Correct!' : 'Incorrect.',
+              correct_answer: correct_options.pluck(:option_text).join(', '),
+              selected_answer: selected_option.option_text,
+              explanation: question.explanation,
+              points_earned: is_correct ? question.points : 0,
+              total_points: question.points
+            }
+          else
+            { success: false, message: 'Selected option not found.' }
+          end
+        else
+          { success: false, message: 'No option selected.' }
+        end
+
+      when 'short_answer'
+        answer_text = params[:answer_text]&.strip
+        if answer_text.present?
+          # For short answer, we'll do a simple check against expected answers
+          # This could be enhanced with more sophisticated matching
+          is_correct = question.check_short_answer(answer_text)
+
+          {
+            is_correct: is_correct,
+            feedback_type: is_correct ? 'correct' : 'needs_review',
+            message: is_correct ? 'Great answer!' : 'Your answer has been recorded and will be reviewed.',
+            your_answer: answer_text,
+            explanation: question.explanation,
+            points_earned: is_correct ? question.points : 0,
+            total_points: question.points
+          }
+        else
+          { success: false, message: 'No answer provided.' }
+        end
+      else
+        { success: false, message: 'Unknown question type.' }
+      end
+
+      if feedback[:success] == false
+        render json: feedback, status: :bad_request
+      else
+        render json: { success: true, feedback: feedback }
+      end
+
+    rescue StandardError => e
+      Rails.logger.error "Failed to check answer: #{e.message}"
+      render json: { success: false, message: 'Failed to check answer.' }, status: :unprocessable_entity
     end
   end
 
