@@ -1,5 +1,5 @@
 class QuizzesController < ApplicationController
-  before_action :authenticate_user!
+  before_action :require_user_role
   before_action :set_quiz, only: [:show, :start, :submit, :results, :save_progress]
   before_action :set_quiz_attempt, only: [:show, :submit, :results, :save_progress]
 
@@ -452,15 +452,9 @@ class QuizzesController < ApplicationController
     @quiz.quiz_attempts.where(user: current_user, status: 'in_progress').reload.first
   end
 
-  def authenticate_user!
-    unless session[:user_id]
-      redirect_to new_session_path, alert: 'Please log in to take quizzes.'
-    end
-  end
 
-  def current_user
-    @current_user ||= User.find(session[:user_id]) if session[:user_id]
-  end
+
+
 
   def user_has_access_to_course?(course)
     # Basic access check - you might want to implement more sophisticated logic

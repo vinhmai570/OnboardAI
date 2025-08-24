@@ -268,6 +268,49 @@ class Admin::CourseGeneratorController < ApplicationController
     end
   end
 
+  def delete_conversation
+    conversation_id = params[:conversation_id]
+    current_user_id = session[:user_id]
+
+    @conversation = Conversation.find_by(id: conversation_id, user_id: current_user_id)
+
+    if @conversation
+      # Check if this is the current active conversation
+      is_current_conversation = session[:conversation_id] == @conversation.id
+
+      @conversation.destroy
+
+      # Clear session if we deleted the current conversation
+      if is_current_conversation
+        session[:conversation_id] = nil
+      end
+
+      # Get updated conversation list
+      @conversations = Conversation.where(user_id: current_user_id).recent.limit(10)
+
+      respond_to do |format|
+        format.turbo_stream do
+          if is_current_conversation
+            # If we deleted the current conversation, clear the chat and update the conversation list
+            render turbo_stream: [
+              turbo_stream.update("chat-messages", partial: "welcome_message", locals: { conversation: nil }),
+              turbo_stream.update("conversation-list", partial: "conversation_list", locals: { conversations: @conversations })
+            ]
+          else
+            # Just update the conversation list
+            render turbo_stream: turbo_stream.update("conversation-list", partial: "conversation_list", locals: { conversations: @conversations })
+          end
+        end
+        format.html { redirect_to admin_course_generator_index_path, notice: "Conversation deleted successfully." }
+      end
+    else
+      respond_to do |format|
+        format.turbo_stream { head :not_found }
+        format.html { redirect_to admin_course_generator_index_path, alert: "Conversation not found." }
+      end
+    end
+  end
+
   def search_documents
     query = params[:query]&.strip&.downcase
 

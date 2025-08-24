@@ -1,4 +1,6 @@
 class DashboardController < ApplicationController
+  before_action :require_user_role
+  
   def index
     # User dashboard - show assigned courses and progress
 

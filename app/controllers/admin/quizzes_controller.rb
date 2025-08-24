@@ -1,5 +1,5 @@
 class Admin::QuizzesController < ApplicationController
-  before_action :ensure_admin
+  before_action :require_admin
   before_action :set_quiz, only: [:show, :edit, :update, :destroy, :analytics, :regenerate]
 
   def index
@@ -145,15 +145,7 @@ class Admin::QuizzesController < ApplicationController
     redirect_to admin_quizzes_path, alert: 'Quiz not found.'
   end
 
-  def ensure_admin
-    unless current_user&.admin?
-      redirect_to root_path, alert: 'Access denied. Admin privileges required.'
-    end
-  end
 
-  def current_user
-    @current_user ||= User.find(session[:user_id]) if session[:user_id]
-  end
 
   def quiz_params
     params.require(:quiz).permit(:title, :description, :total_points, :time_limit_minutes)

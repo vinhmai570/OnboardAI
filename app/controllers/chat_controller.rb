@@ -1,4 +1,6 @@
 class ChatController < ApplicationController
+  before_action :require_user_role
+  
   def create
     message = params[:message]
     course_id = params[:course_id]

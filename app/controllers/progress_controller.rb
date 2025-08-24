@@ -1,5 +1,5 @@
 class ProgressController < ApplicationController
-  before_action :authenticate_user!
+  before_action :require_user_role
   before_action :set_course, only: [:course_progress]
   before_action :set_course_step, only: [:start_step, :complete_step]
 
@@ -84,7 +84,7 @@ class ProgressController < ApplicationController
 
   def dashboard
     # Admin-only comprehensive dashboard
-    unless current_user&.admin?
+    unless admin?
       redirect_to progress_index_path, alert: 'Access denied.'
       return
     end
@@ -147,15 +147,7 @@ class ProgressController < ApplicationController
 
   private
 
-  def authenticate_user!
-    unless session[:user_id]
-      redirect_to new_session_path, alert: 'Please log in to view progress.'
-    end
-  end
 
-  def current_user
-    @current_user ||= User.find(session[:user_id]) if session[:user_id]
-  end
 
   def set_course
     @course = Course.find(params[:course_id])

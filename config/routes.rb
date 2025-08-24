@@ -3,6 +3,7 @@ Rails.application.routes.draw do
   resources :sessions, only: [ :new, :create, :destroy ]
   get "/login", to: "sessions#new"
   delete "/logout", to: "sessions#destroy"
+  get "/logout", to: "sessions#destroy"  # Support both GET and DELETE for logout
 
   # Root route - redirect to appropriate dashboard
   root "dashboard#index"
@@ -23,6 +24,7 @@ Rails.application.routes.draw do
         get :show_structure
         post :new_conversation
         post :switch_conversation
+        delete :delete_conversation
         get :search_documents
         get 'step_content/:id', to: 'course_generator#step_content', as: 'step_content'
       end

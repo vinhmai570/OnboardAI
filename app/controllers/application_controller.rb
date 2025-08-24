@@ -28,6 +28,19 @@ class ApplicationController < ActionController::Base
     redirect_to dashboard_path unless admin?
   end
 
+  def require_user_role
+    # Ensures regular users can't access admin routes and admins use admin routes
+    if logged_in?
+      if current_user.admin? && !request.path.start_with?("/admin") && !request.path.start_with?("/logout") && request.path != "/"
+        # Admin users trying to access user routes should be redirected to admin
+        redirect_to admin_dashboard_path
+      elsif current_user.user? && request.path.start_with?("/admin")
+        # Regular users trying to access admin routes should be redirected to user dashboard
+        redirect_to dashboard_path
+      end
+    end
+  end
+
   def skip_authentication
     # Can be used in controllers that don't need authentication
   end

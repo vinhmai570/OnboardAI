@@ -9,8 +9,7 @@
         </div>
         <div class="flex items-center space-x-4">
           <span class="text-gray-700">Welcome, <%= current_user.email %></span>
-          <%= link_to "User View", dashboard_path, class: "text-indigo-600 hover:text-indigo-900" %>
-          <%= link_to "Logout", logout_path, method: :delete, class: "text-red-600 hover:text-red-900" %>
+          <%= button_to "Logout", logout_path, method: :delete, class: "text-red-600 hover:text-red-900 bg-transparent border-none cursor-pointer p-0 underline", form: { style: "display: inline;" } %>
         </div>
       </div>
     </div>

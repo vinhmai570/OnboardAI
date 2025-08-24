@@ -1,5 +1,5 @@
 class CoursesController < ApplicationController
-  before_action :require_login
+  before_action :require_user_role
   before_action :set_course, only: [:show, :enroll, :complete_step]
 
   def index
@@ -151,13 +151,7 @@ class CoursesController < ApplicationController
     @course = Course.find(params[:id])
   end
 
-  def require_login
-    redirect_to new_session_path unless current_user
-  end
 
-  def current_user
-    @current_user ||= User.find(session[:user_id]) if session[:user_id]
-  end
 
   def can_access_course?(course)
     return true if current_user.admin?
