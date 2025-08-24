@@ -223,16 +223,27 @@ class GenerateFullCourseJob < ApplicationJob
     if quiz_data && quiz_data['quiz']
       quiz_info = quiz_data['quiz']
 
-      # Create a quiz step at the end of the module
-      quiz_step = course_module.course_steps.create!(
-        title: quiz_info['title'] || "📝 Module #{course_module.order_position} Quiz",
-        step_type: 'assessment',
-        duration_minutes: quiz_info['time_limit_minutes'] || 15,
-        content: "Complete this quiz to test your understanding of the module concepts.",
-        detailed_content: quiz_info['description'] || "Quiz covering key concepts from this module.",
-        content_generated: true,
-        order_position: course_module.course_steps.maximum(:order_position).to_i + 1
-      )
+      # Find an existing assessment step (quiz step) for this module, or create one if it doesn't exist
+      quiz_step = course_module.course_steps.find_by(step_type: 'assessment')
+      if quiz_step
+        quiz_step.update!(
+          title: quiz_info['title'] || quiz_step.title,
+          duration_minutes: quiz_info['time_limit_minutes'] || quiz_step.duration_minutes,
+          content: "Complete this quiz to test your understanding of the module concepts.",
+          detailed_content: quiz_info['description'] || quiz_step.detailed_content,
+          content_generated: true
+        )
+      else
+        quiz_step = course_module.course_steps.create!(
+          title: quiz_info['title'] || "📝 Module #{course_module.order_position} Quiz",
+          step_type: 'assessment',
+          duration_minutes: quiz_info['time_limit_minutes'] || 15,
+          content: "Complete this quiz to test your understanding of the module concepts.",
+          detailed_content: quiz_info['description'] || "Quiz covering key concepts from this module.",
+          content_generated: true,
+          order_position: course_module.course_steps.maximum(:order_position).to_i + 1
+        )
+      end
 
       # Create the quiz record
       quiz = Quiz.create!(
@@ -271,7 +282,7 @@ class GenerateFullCourseJob < ApplicationJob
     questions_data.each_with_index do |question_data, index|
       begin
         Rails.logger.info "        → Processing question #{index + 1}: #{question_data.inspect}"
-        
+
         # Validate required question data
         unless question_data.is_a?(Hash) && question_data['question_text'].present?
           Rails.logger.error "        ❌ Invalid question data structure for question #{index + 1}"
@@ -303,7 +314,7 @@ class GenerateFullCourseJob < ApplicationJob
               is_correct: !!option_data['is_correct'], # Convert to boolean
               order_position: (option_data['order_position'] || (option_index + 1)).to_i
             )
-            
+
             Rails.logger.info "        → Created option: #{option.id} (#{option.is_correct ? 'correct' : 'incorrect'})"
           end
         else
@@ -322,7 +333,7 @@ class GenerateFullCourseJob < ApplicationJob
 
         questions_created += 1
         Rails.logger.info "        ✅ Created question: #{question.question_type} (#{options_count} options)"
-        
+
       rescue ActiveRecord::RecordInvalid => e
         Rails.logger.error "        ❌ Validation error creating question #{index + 1}: #{e.message}"
         Rails.logger.error "        ❌ Question data: #{question_data.inspect}"
