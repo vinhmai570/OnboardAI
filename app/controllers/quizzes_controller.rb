@@ -1,5 +1,4 @@
 class QuizzesController < ApplicationController
-  before_action :require_user_role
   before_action :set_quiz, only: [:show, :start, :submit, :results, :save_progress]
   before_action :set_quiz_attempt, only: [:show, :submit, :results, :save_progress]
 
@@ -181,11 +180,11 @@ class QuizzesController < ApplicationController
         # Get the module that contains this quiz step
         course_module = @quiz.course_step.course_module
         course = course_module.course
-        
+
         # Mark ALL steps in this module as completed for the user
         course_module.complete_all_steps_for_user!(current_user, @current_attempt.percentage_score)
-        
-        # Update legacy Progress model if it exists  
+
+        # Update legacy Progress model if it exists
         course_progress_data = current_user.progress_for_course(course)
         legacy_progress = current_user.progresses.find_by(course: course)
         if legacy_progress
@@ -194,7 +193,7 @@ class QuizzesController < ApplicationController
             quiz_scores: legacy_progress.quiz_scores.merge(@quiz.id => @current_attempt.percentage_score)
           )
         end
-        
+
         Rails.logger.info "Quiz passed! Module '#{course_module.title}' completed - #{course_module.course_steps.count} steps marked complete. Overall course progress: #{course_progress_data[:completion_percentage]}% (#{course_progress_data[:completed_steps]}/#{course_progress_data[:total_steps]} steps)"
       else
         # Even if quiz is failed, ensure step is marked as in_progress (user has attempted it)

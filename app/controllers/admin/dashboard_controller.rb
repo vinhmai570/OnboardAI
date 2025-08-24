@@ -37,6 +37,44 @@ class Admin::DashboardController < ApplicationController
 
     # Course completion trends (for charts)
     @completion_trends = completion_trends_data
+
+    respond_to do |format|
+      format.html # Regular HTML view
+      format.json {
+        render json: {
+          stats: {
+            total_users: @total_users,
+            total_courses: @total_courses,
+            total_documents: @total_documents
+          },
+          progress_summary: @progress_summary,
+          recent_courses: @recent_courses.map do |course|
+            {
+              id: course.id,
+              title: course.title,
+              admin_email: course.admin.email,
+              created_at: course.created_at.strftime('%b %d, %Y'),
+              modules_count: course.course_modules.count
+            }
+          end,
+          recent_users: @recent_users.map do |user|
+            {
+              id: user.id,
+              email: user.email,
+              created_at: user.created_at.strftime('%b %d, %Y')
+            }
+          end,
+          completion_trends: @completion_trends,
+          top_courses: @top_courses.map do |course|
+            {
+              id: course.id,
+              title: course.title,
+              assignments_count: course.user_course_assignments.count
+            }
+          end
+        }
+      }
+    end
   end
 
   private

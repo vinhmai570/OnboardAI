@@ -1,6 +1,6 @@
 class DashboardController < ApplicationController
   before_action :require_user_role
-  
+
   def index
     # User dashboard - show assigned courses and progress
 
@@ -55,7 +55,7 @@ class DashboardController < ApplicationController
       course = assignment.course
       progress_data = current_user.progress_for_course(course)
       completion_percentage = progress_data[:completion_percentage]
-      
+
       total_completion += completion_percentage
       completed_courses += 1 if completion_percentage >= 100
 
@@ -69,10 +69,10 @@ class DashboardController < ApplicationController
     # Also calculate for enrolled courses using step-based progress display
     @enrolled_courses.each do |course|
       next if @assigned_courses.any? { |a| a.course_id == course.id } # Skip if already counted in assigned
-      
+
       progress_data = current_user.progress_for_course(course)
       completion_percentage = progress_data[:completion_percentage]
-      
+
       total_completion += completion_percentage
       completed_courses += 1 if completion_percentage >= 100
     end

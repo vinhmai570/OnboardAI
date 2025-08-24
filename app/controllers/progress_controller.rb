@@ -167,7 +167,7 @@ class ProgressController < ApplicationController
                       .where(user_progresses: { user: current_user })
                       .select('DISTINCT courses.id')
                       .pluck(:id)
-    
+
     Course.where(id: course_ids)
           .includes(course_modules: :course_steps)
           .map do |course|
